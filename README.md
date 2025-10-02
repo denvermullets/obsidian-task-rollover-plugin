@@ -1,13 +1,14 @@
 # Daily Note Rollover Plugin
 
-An Obsidian plugin that automatically moves unchecked items from yesterday's daily note to today's daily note.
+An Obsidian plugin that automatically moves unchecked items from yesterday's daily note to today's daily note, and optionally integrates with GitHub to track PR reviews and comments.
 
 ## Features
 
-- Automatically detects when you open a daily note
-- Moves all unchecked checkbox items from yesterday's note to today's note
+- Automatically moves unchecked checkbox items from yesterday's note to today's note
+- Runs on app load and when creating a new daily note
 - Manual command available: "Move unchecked items from yesterday to today"
 - Supports multiple daily note formats (YYYY-MM-DD, DD-MM-YYYY, etc.)
+- **GitHub Integration**: Track PR review requests and new comments on your PRs
 
 ## Installation
 
@@ -32,9 +33,68 @@ An Obsidian plugin that automatically moves unchecked items from yesterday's dai
 - `npm run build` - Builds the plugin for production
 - `npm run dev` - Builds the plugin and watches for changes
 
+## Configuration
+
+### Task Rollover Settings
+
+1. Go to Settings → Daily Note Rollover
+2. Configure the **Target section heading** where unchecked tasks should be inserted (default: `## Tasks`)
+   - This heading should exist in your daily note template
+   - If it doesn't exist, the plugin will create it
+
+### GitHub Integration Setup
+
+The plugin can automatically add GitHub PR information to your daily notes, including:
+
+- PRs where you've been requested as a reviewer
+- New comments on your PRs (since yesterday)
+
+#### Setup Steps:
+
+1. **Enable GitHub Integration**
+
+   - Go to Settings → Daily Note Rollover → GitHub Integration
+   - Toggle on "Enable GitHub integration"
+
+2. **Create a GitHub Personal Access Token**
+
+   - Visit [https://github.com/settings/tokens](https://github.com/settings/tokens)
+   - Click "Generate new token (classic)"
+   - Give it a descriptive name (e.g., "Obsidian Daily Notes")
+   - Select the `repo` scope (this gives access to repositories)
+   - Click "Generate token"
+   - Copy the token (you won't be able to see it again!)
+
+3. **Configure Plugin Settings**
+   - **GitHub personal access token**: Paste the token you just created
+   - **GitHub username**: Enter your GitHub username
+   - **Repositories to monitor**: Enter a comma-separated list of repositories you want to track
+     - Format: `owner/repo1, owner/repo2`
+     - Example: `facebook/react, microsoft/vscode`
+   - **GitHub section heading**: Customize where PR info appears (default: `## GitHub PRs`)
+
+#### What Gets Added to Your Daily Note:
+
+The plugin will add checkable task items like:
+
+- `- [ ] Review requested: [Add new feature X](https://github.com/owner/repo/pull/123)`
+- `- [ ] 3 new comments on your PR: [Fix bug Y](https://github.com/owner/repo/pull/456)`
+
+These items are inserted at the section heading you specify, making it easy to track your GitHub activity alongside your daily tasks.
+
 ## How it Works
 
-The plugin looks for unchecked items (lines starting with `- [ ]`, `* [ ]`, or `+ [ ]`) in yesterday's daily note and appends them to today's daily note under a "Rolled over from yesterday" section.
+### Task Rollover
+
+The plugin looks for unchecked items (lines starting with `- [ ]`, `* [ ]`, or `+ [ ]`) in yesterday's daily note and inserts them into today's note at your specified section heading.
+
+### GitHub Integration
+
+When enabled, the plugin queries the GitHub API to:
+
+1. Find all open PRs where you've been requested as a reviewer
+2. Check your authored PRs for new comments since yesterday
+3. Add these as task items in your daily note
 
 ## Supported Daily Note Formats
 

@@ -2,10 +2,20 @@ import { App, Plugin, PluginSettingTab, Setting, TFile, moment } from 'obsidian'
 
 interface DailyNoteRolloverSettings {
 	targetSectionHeading: string;
+	githubToken: string;
+	githubUsername: string;
+	githubRepos: string;
+	githubSectionHeading: string;
+	enableGithubIntegration: boolean;
 }
 
 const DEFAULT_SETTINGS: DailyNoteRolloverSettings = {
-	targetSectionHeading: '## Tasks'
+	targetSectionHeading: '## Tasks',
+	githubToken: '',
+	githubUsername: '',
+	githubRepos: '',
+	githubSectionHeading: '## GitHub PRs',
+	enableGithubIntegration: false
 }
 
 export default class DailyNoteRolloverPlugin extends Plugin {
@@ -68,36 +78,38 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 	}
 
 	async rolloverUncheckedItems() {
-		const yesterdayNote = await this.getYesterdayNote();
 		const todayNote = await this.getTodayNote();
-
-		if (!yesterdayNote) {
-			console.log('No daily note found for yesterday');
-			return;
-		}
 
 		if (!todayNote) {
 			console.log('No daily note found for today');
 			return;
 		}
 
-		// Read yesterday's note
-		const yesterdayContent = await this.app.vault.read(yesterdayNote);
-		const uncheckedItems = this.extractUncheckedItems(yesterdayContent);
+		// Read today's note
+		let todayContent = await this.app.vault.read(todayNote);
 
-		if (uncheckedItems.length === 0) {
-			console.log('No unchecked items found in yesterday\'s note');
-			return;
+		// Process unchecked items from yesterday
+		const yesterdayNote = await this.getYesterdayNote();
+		if (yesterdayNote) {
+			const yesterdayContent = await this.app.vault.read(yesterdayNote);
+			const uncheckedItems = this.extractUncheckedItems(yesterdayContent);
+
+			if (uncheckedItems.length > 0) {
+				todayContent = this.appendItemsToSection(todayContent, uncheckedItems, this.settings.targetSectionHeading);
+				console.log(`Moved ${uncheckedItems.length} unchecked items to today's note`);
+			}
 		}
 
-		// Read today's note
-		const todayContent = await this.app.vault.read(todayNote);
+		// Fetch and add GitHub PR information
+		if (this.settings.enableGithubIntegration) {
+			const githubItems = await this.fetchGitHubPRs();
+			if (githubItems.length > 0) {
+				todayContent = this.appendItemsToSection(todayContent, githubItems, this.settings.githubSectionHeading);
+				console.log(`Added ${githubItems.length} GitHub PR items to today's note`);
+			}
+		}
 
-		// Append unchecked items to today's note
-		const newContent = this.appendUncheckedItems(todayContent, uncheckedItems);
-		await this.app.vault.modify(todayNote, newContent);
-
-		console.log(`Moved ${uncheckedItems.length} unchecked items to today's note`);
+		await this.app.vault.modify(todayNote, todayContent);
 	}
 
 	extractUncheckedItems(content: string): string[] {
@@ -114,8 +126,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 		return uncheckedItems;
 	}
 
-	appendUncheckedItems(todayContent: string, uncheckedItems: string[]): string {
-		const targetHeading = this.settings.targetSectionHeading;
+	appendItemsToSection(todayContent: string, items: string[], targetHeading: string): string {
 		const lines = todayContent.split('\n');
 
 		// Find the target section heading
@@ -134,18 +145,18 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 				newContent += '\n';
 			}
 			newContent += '\n' + targetHeading + '\n';
-			newContent += uncheckedItems.join('\n') + '\n';
+			newContent += items.join('\n') + '\n';
 			return newContent;
 		}
 
-		// Insert unchecked items after the target heading
+		// Insert items after the target heading
 		// Skip any existing content until we find an empty line or another heading
 		while (insertIndex < lines.length && lines[insertIndex].trim() !== '' && !lines[insertIndex].trim().match(/^#+\s/)) {
 			insertIndex++;
 		}
 
-		// Insert the unchecked items
-		lines.splice(insertIndex, 0, ...uncheckedItems);
+		// Insert the items
+		lines.splice(insertIndex, 0, ...items);
 
 		return lines.join('\n');
 	}
@@ -224,6 +235,85 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 		return file.name === today || file.name === yesterday;
 	}
 
+	async fetchGitHubPRs(): Promise<string[]> {
+		if (!this.settings.enableGithubIntegration || !this.settings.githubToken || !this.settings.githubUsername) {
+			return [];
+		}
+
+		const prItems: string[] = [];
+		const repos = this.settings.githubRepos.split(',').map(r => r.trim()).filter(r => r.length > 0);
+
+		try {
+			const yesterday = moment().subtract(1, 'days').toISOString();
+
+			// Fetch review requests assigned to you
+			const searchQuery = `type:pr state:open review-requested:${this.settings.githubUsername}`;
+			const reviewRequests = await this.githubApiRequest(
+				`https://api.github.com/search/issues?q=${encodeURIComponent(searchQuery)}&sort=updated&order=desc`
+			);
+
+			if (reviewRequests?.items) {
+				for (const pr of reviewRequests.items) {
+					prItems.push(`- [ ] Review requested: [${pr.title}](${pr.html_url})`);
+				}
+			}
+
+			// Fetch PRs you've authored with new comments
+			for (const repo of repos) {
+				if (!repo.includes('/')) continue;
+
+				const prsResponse = await this.githubApiRequest(
+					`https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`
+				);
+
+				if (Array.isArray(prsResponse)) {
+					for (const pr of prsResponse) {
+						// Check if you're the author
+						if (pr.user?.login === this.settings.githubUsername) {
+							// Fetch comments to see if there are new ones
+							const commentsResponse = await this.githubApiRequest(
+								`https://api.github.com/repos/${repo}/pulls/${pr.number}/comments?since=${yesterday}`
+							);
+
+							const reviewCommentsResponse = await this.githubApiRequest(
+								`https://api.github.com/repos/${repo}/issues/${pr.number}/comments?since=${yesterday}`
+							);
+
+							const newComments = (Array.isArray(commentsResponse) ? commentsResponse.length : 0) +
+							                   (Array.isArray(reviewCommentsResponse) ? reviewCommentsResponse.length : 0);
+
+							if (newComments > 0) {
+								prItems.push(`- [ ] ${newComments} new comment${newComments > 1 ? 's' : ''} on your PR: [${pr.title}](${pr.html_url})`);
+							}
+						}
+					}
+				}
+			}
+
+			return prItems;
+		} catch (error) {
+			console.error('Error fetching GitHub PRs:', error);
+			return [];
+		}
+	}
+
+	async githubApiRequest(url: string): Promise<any> {
+		const response = await fetch(url, {
+			headers: {
+				'Authorization': `Bearer ${this.settings.githubToken}`,
+				'Accept': 'application/vnd.github+json',
+				'X-GitHub-Api-Version': '2022-11-28'
+			}
+		});
+
+		if (!response.ok) {
+			console.error(`GitHub API error: ${response.status} ${response.statusText}`);
+			return null;
+		}
+
+		return await response.json();
+	}
+
 	onunload() {
 		console.log('Unloading Daily Note Rollover plugin');
 	}
@@ -242,6 +332,8 @@ class DailyNoteRolloverSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
+		containerEl.createEl('h2', {text: 'Task Rollover Settings'});
+
 		new Setting(containerEl)
 			.setName('Target section heading')
 			.setDesc('The heading in your daily note template where unchecked tasks should be inserted (e.g., "## Tasks" or "## Todo")')
@@ -252,5 +344,65 @@ class DailyNoteRolloverSettingTab extends PluginSettingTab {
 					this.plugin.settings.targetSectionHeading = value;
 					await this.plugin.saveSettings();
 				}));
+
+		containerEl.createEl('h2', {text: 'GitHub Integration'});
+
+		new Setting(containerEl)
+			.setName('Enable GitHub integration')
+			.setDesc('Automatically add GitHub PR notifications to your daily notes')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.enableGithubIntegration)
+				.onChange(async (value) => {
+					this.plugin.settings.enableGithubIntegration = value;
+					await this.plugin.saveSettings();
+					this.display(); // Refresh to show/hide other settings
+				}));
+
+		if (this.plugin.settings.enableGithubIntegration) {
+			new Setting(containerEl)
+				.setName('GitHub personal access token')
+				.setDesc('Create a token at https://github.com/settings/tokens with "repo" scope')
+				.addText(text => text
+					.setPlaceholder('ghp_...')
+					.setValue(this.plugin.settings.githubToken)
+					.onChange(async (value) => {
+						this.plugin.settings.githubToken = value;
+						await this.plugin.saveSettings();
+					})
+					.inputEl.type = 'password');
+
+			new Setting(containerEl)
+				.setName('GitHub username')
+				.setDesc('Your GitHub username')
+				.addText(text => text
+					.setPlaceholder('octocat')
+					.setValue(this.plugin.settings.githubUsername)
+					.onChange(async (value) => {
+						this.plugin.settings.githubUsername = value;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Repositories to monitor')
+				.setDesc('Comma-separated list of repositories (e.g., "owner/repo1, owner/repo2")')
+				.addTextArea(text => text
+					.setPlaceholder('owner/repo1, owner/repo2')
+					.setValue(this.plugin.settings.githubRepos)
+					.onChange(async (value) => {
+						this.plugin.settings.githubRepos = value;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('GitHub section heading')
+				.setDesc('The heading where GitHub PR information should be inserted')
+				.addText(text => text
+					.setPlaceholder('## GitHub PRs')
+					.setValue(this.plugin.settings.githubSectionHeading)
+					.onChange(async (value) => {
+						this.plugin.settings.githubSectionHeading = value;
+						await this.plugin.saveSettings();
+					}));
+		}
 	}
 }
