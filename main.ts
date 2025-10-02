@@ -299,8 +299,8 @@ export default class DailyNoteRolloverPlugin extends Plugin {
         }
       }
 
-      // Track PRs we've already added to avoid duplicates
-      const addedPRUrls = new Set<string>();
+      // Track PRs with new comments for highlighting
+      const prsWithComments = new Set<string>();
 
       // Fetch PRs you've authored with new comments
       for (const repo of repos) {
@@ -333,29 +333,16 @@ export default class DailyNoteRolloverPlugin extends Plugin {
                     pr.title
                   }](${pr.html_url})`
                 );
-                addedPRUrls.add(pr.html_url);
+                prsWithComments.add(pr.html_url);
               }
             }
           }
         }
       }
 
-      // Add a section for your open PRs
-      const openPRs = await this.fetchYourOpenPRs(repos, yesterday);
-      for (const prItem of openPRs) {
-        // Skip if we already added it in the comments section
-        if (!addedPRUrls.has(prItem.url)) {
-          openPRItems.push(prItem.text);
-        }
-      }
-
-      // Add recently merged PRs
-      const mergedPRs = await this.fetchRecentlyMergedPRs(repos, yesterday);
-      if (mergedPRs.length > 0) {
-        openPRItems.push(""); // Empty line for spacing
-        openPRItems.push("**Recently Merged:**");
-        openPRItems.push(...mergedPRs);
-      }
+      // Add a section for your open PRs and recently merged PRs
+      const allPRs = await this.fetchYourOpenAndMergedPRs(repos, yesterday);
+      openPRItems.push(...allPRs);
 
       return { reviewItems, openPRItems };
     } catch (error) {
@@ -364,56 +351,39 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     }
   }
 
-  async fetchYourOpenPRs(
-    repos: string[],
-    since: string
-  ): Promise<Array<{ text: string; url: string }>> {
-    const prItems: Array<{ text: string; url: string }> = [];
-
-    for (const repo of repos) {
-      if (!repo.includes("/")) continue;
-
-      const prsResponse = await this.githubApiRequest(
-        `https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`
-      );
-
-      if (Array.isArray(prsResponse)) {
-        for (const pr of prsResponse) {
-          if (pr.user?.login === this.settings.githubUsername) {
-            // Check if there was activity yesterday
-            const hasActivity = new Date(pr.updated_at) >= new Date(since);
-
-            if (hasActivity) {
-              prItems.push({
-                text: `- [ ] 🔥 [${pr.title}](${pr.html_url}) *(activity since yesterday)*`,
-                url: pr.html_url,
-              });
-            } else {
-              prItems.push({
-                text: `- [ ] [${pr.title}](${pr.html_url})`,
-                url: pr.html_url,
-              });
-            }
-          }
-        }
-      }
-    }
-
-    return prItems;
-  }
-
-  async fetchRecentlyMergedPRs(repos: string[], since: string): Promise<string[]> {
+  async fetchYourOpenAndMergedPRs(repos: string[], since: string): Promise<string[]> {
     const prItems: string[] = [];
 
     for (const repo of repos) {
       if (!repo.includes("/")) continue;
 
-      const prsResponse = await this.githubApiRequest(
+      // Fetch open PRs
+      const openPRsResponse = await this.githubApiRequest(
+        `https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`
+      );
+
+      if (Array.isArray(openPRsResponse)) {
+        for (const pr of openPRsResponse) {
+          if (pr.user?.login === this.settings.githubUsername) {
+            // Check if there was activity yesterday
+            const hasActivity = new Date(pr.updated_at) >= new Date(since);
+
+            if (hasActivity) {
+              prItems.push(`- [ ] 🔥 [${pr.title}](${pr.html_url}) *(activity since yesterday)*`);
+            } else {
+              prItems.push(`- [ ] [${pr.title}](${pr.html_url})`);
+            }
+          }
+        }
+      }
+
+      // Fetch recently merged PRs
+      const closedPRsResponse = await this.githubApiRequest(
         `https://api.github.com/repos/${repo}/pulls?state=closed&per_page=100&sort=updated&direction=desc`
       );
 
-      if (Array.isArray(prsResponse)) {
-        for (const pr of prsResponse) {
+      if (Array.isArray(closedPRsResponse)) {
+        for (const pr of closedPRsResponse) {
           if (
             pr.user?.login === this.settings.githubUsername &&
             pr.merged_at &&
