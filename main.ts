@@ -82,17 +82,31 @@ export default class DailyNoteRolloverPlugin extends Plugin {
       return;
     }
 
-    // Check if we've already processed this note
-    if (!forceRollover && this.processedNotes.has(todayNote.path)) {
-      console.log("Already processed today's note, skipping rollover");
-      return;
+    // Read today's note
+    let todayContent = await this.app.vault.read(todayNote);
+
+    // Check if note has already been processed by looking for our section headings with content
+    if (!forceRollover) {
+      const hasTaskSection = this.sectionHasContent(
+        todayContent,
+        this.settings.targetSectionHeading
+      );
+      const hasGithubSection =
+        this.settings.enableGithubIntegration &&
+        this.sectionHasContent(todayContent, this.settings.githubSectionHeading);
+      const hasOpenPRSection =
+        this.settings.enableGithubIntegration &&
+        this.sectionHasContent(todayContent, this.settings.githubOpenPRsHeading);
+
+      if (hasTaskSection || hasGithubSection || hasOpenPRSection) {
+        console.log("Today's note already has content, skipping rollover");
+        this.processedNotes.add(todayNote.path);
+        return;
+      }
     }
 
     // Mark this note as processed
     this.processedNotes.add(todayNote.path);
-
-    // Read today's note
-    let todayContent = await this.app.vault.read(todayNote);
 
     // Process unchecked items from yesterday
     const yesterdayNote = await this.getYesterdayNote();
@@ -132,6 +146,33 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     }
 
     await this.app.vault.modify(todayNote, todayContent);
+  }
+
+  sectionHasContent(content: string, sectionHeading: string): boolean {
+    const lines = content.split("\n");
+    let inSection = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Found the section heading
+      if (line.trim() === sectionHeading.trim()) {
+        inSection = true;
+        continue;
+      }
+
+      // If we're in the section and hit another heading, stop
+      if (inSection && line.trim().match(/^#+\s/)) {
+        return false;
+      }
+
+      // If we're in the section and find non-empty content, return true
+      if (inSection && line.trim() !== "") {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   extractUncheckedItems(content: string): string[] {
