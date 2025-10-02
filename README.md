@@ -2,6 +2,10 @@
 
 An Obsidian plugin that automatically moves unchecked items from yesterday's daily note to today's daily note, and optionally integrates with GitHub to track PR reviews and comments.
 
+## Why?
+
+Well, I used a plugin that did this and it didn't work so I let Claude Code go nuts with it (in a container!). I opted to add more integration stuff since I will probably be the only person to ever use this. A common problem I have is notification fatigue, especially with Github, so this should help prioritize at a glance for me.
+
 ## Features
 
 - Automatically moves unchecked checkbox items from yesterday's note to today's note
