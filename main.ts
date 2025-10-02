@@ -241,7 +241,12 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 		}
 
 		const prItems: string[] = [];
-		const repos = this.settings.githubRepos.split(',').map(r => r.trim()).filter(r => r.length > 0);
+		const repos = this.settings.githubRepos.split(',').map(r => {
+			r = r.trim();
+			// Extract owner/repo from URLs like https://github.com/owner/repo
+			const match = r.match(/github\.com\/([^\/]+\/[^\/]+)/);
+			return match ? match[1] : r;
+		}).filter(r => r.length > 0);
 
 		try {
 			const yesterday = moment().subtract(1, 'days').toISOString();
