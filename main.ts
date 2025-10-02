@@ -1,6 +1,8 @@
 import { Plugin, TFile, moment } from 'obsidian';
 
 export default class DailyNoteRolloverPlugin extends Plugin {
+	private processedNotes: Set<string> = new Set();
+
 	async onload() {
 		console.log('Loading Daily Note Rollover plugin');
 
@@ -17,7 +19,13 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on('file-open', async (file) => {
 				if (file && this.isDailyNote(file)) {
-					await this.rolloverUncheckedItems();
+					const noteKey = file.path + '-' + moment().format('YYYY-MM-DD');
+
+					// Only process if we haven't already processed this note today
+					if (!this.processedNotes.has(noteKey)) {
+						this.processedNotes.add(noteKey);
+						await this.rolloverUncheckedItems();
+					}
 				}
 			})
 		);
@@ -97,45 +105,62 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 	}
 
 	async getDailyNote(date: moment.Moment): Promise<TFile | null> {
-		// Try common daily note formats
-		const formats = [
-			'YYYY-MM-DD',
-			'YYYY-MM-DD-dddd',
-			'DD-MM-YYYY',
-			'MM-DD-YYYY',
-			'YYYYMMDD'
-		];
+		// @ts-ignore - Access internal daily notes plugin
+		const dailyNotesPlugin = this.app.internalPlugins?.plugins?.['daily-notes'];
 
-		for (const format of formats) {
-			const fileName = date.format(format) + '.md';
-			const file = this.app.vault.getAbstractFileByPath(fileName);
+		let format = 'YYYY-MM-DD';
+		let folder = '';
 
-			if (file instanceof TFile) {
-				return file;
+		// Get settings from daily notes core plugin if available
+		if (dailyNotesPlugin?.instance?.options) {
+			const options = dailyNotesPlugin.instance.options;
+			if (options.format) {
+				format = options.format;
 			}
-
-			// Try in Daily Notes folder
-			const dailyNotesFolder = 'Daily Notes';
-			const fileInFolder = this.app.vault.getAbstractFileByPath(`${dailyNotesFolder}/${fileName}`);
-
-			if (fileInFolder instanceof TFile) {
-				return fileInFolder;
+			if (options.folder) {
+				folder = options.folder;
 			}
+		}
+
+		// Build the file path
+		const fileName = date.format(format) + '.md';
+		const filePath = folder ? `${folder}/${fileName}` : fileName;
+
+		const file = this.app.vault.getAbstractFileByPath(filePath);
+
+		if (file instanceof TFile) {
+			return file;
 		}
 
 		return null;
 	}
 
 	isDailyNote(file: TFile): boolean {
-		// Check if filename matches common daily note patterns
-		const formats = [
-			/^\d{4}-\d{2}-\d{2}\.md$/,
-			/^\d{4}-\d{2}-\d{2}-.+\.md$/,
-			/^\d{2}-\d{2}-\d{4}\.md$/,
-			/^\d{8}\.md$/
-		];
+		// @ts-ignore - Access internal daily notes plugin
+		const dailyNotesPlugin = this.app.internalPlugins?.plugins?.['daily-notes'];
 
-		return formats.some(pattern => pattern.test(file.name));
+		let format = 'YYYY-MM-DD';
+		let folder = '';
+
+		// Get settings from daily notes core plugin if available
+		if (dailyNotesPlugin?.instance?.options) {
+			const options = dailyNotesPlugin.instance.options;
+			if (options.format) {
+				format = options.format;
+			}
+			if (options.folder) {
+				folder = options.folder;
+			}
+		}
+
+		// Check if the file is in the daily notes folder
+		if (folder && !file.path.startsWith(folder + '/')) {
+			return false;
+		}
+
+		// Check if the filename matches today's format
+		const expectedFileName = moment().format(format) + '.md';
+		return file.name === expectedFileName;
 	}
 
 	onunload() {
