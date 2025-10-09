@@ -1,7 +1,7 @@
 import { Plugin, TFile, moment } from "obsidian";
 import DailyNoteRolloverSettingTab from "./settings";
 import { DEFAULT_SETTINGS, DailyNoteRolloverSettings } from "./types";
-import { getDailyNoteFormat, getTodayNote, getYesterdayNote, isDailyNote } from "./dailyNotes";
+import { getDailyNoteFormat, getDailyNoteFolder, getTodayNote, getYesterdayNote, isDailyNote } from "./dailyNotes";
 import { sectionHasContent, extractUncheckedItems, appendItemsToSection } from "./sections";
 import { fetchGitHubPRs } from "./github";
 
@@ -66,6 +66,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     this.processedNotes.add(todayNote.path);
 
     const yesterdayNote = await getYesterdayNote(this.app);
+    let shouldArchive = false;
     if (yesterdayNote) {
       const yesterdayContent = await this.app.vault.read(yesterdayNote);
       const uncheckedItems = extractUncheckedItems(yesterdayContent);
@@ -76,6 +77,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
           this.settings.targetSectionHeading
         );
         console.log(`Moved ${uncheckedItems.length} unchecked items to today's note`);
+        shouldArchive = true;
       }
     }
 
@@ -100,6 +102,25 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     }
 
     await this.app.vault.modify(todayNote, todayContent);
+
+    if (shouldArchive && yesterdayNote) {
+      await this.archiveNote(yesterdayNote);
+    }
+  }
+
+  async archiveNote(note: TFile) {
+    const dailyNoteFolder = getDailyNoteFolder(this.app);
+    const archiveFolderName = this.settings.archiveFolderName || "archive";
+    const archivePath = dailyNoteFolder ? `${dailyNoteFolder}/${archiveFolderName}` : archiveFolderName;
+    const archiveFolder = this.app.vault.getAbstractFileByPath(archivePath);
+
+    if (!archiveFolder) {
+      await this.app.vault.createFolder(archivePath);
+    }
+
+    const newPath = `${archivePath}/${note.name}`;
+    await this.app.fileManager.renameFile(note, newPath);
+    console.log(`Archived ${note.name} to ${newPath}`);
   }
 
   onunload() {

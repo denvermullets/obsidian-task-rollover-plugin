@@ -28,6 +28,19 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
           })
       );
 
+    new Setting(containerEl)
+      .setName("Archive folder name")
+      .setDesc('Subfolder name for archived notes (e.g., "archive" or "old-notes"). Will be created relative to your daily notes folder.')
+      .addText((text) =>
+        text
+          .setPlaceholder("archive")
+          .setValue(this.plugin.settings.archiveFolderName)
+          .onChange(async (value) => {
+            this.plugin.settings.archiveFolderName = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
     containerEl.createEl("h2", { text: "GitHub Integration" });
 
     new Setting(containerEl)
