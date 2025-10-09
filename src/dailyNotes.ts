@@ -53,5 +53,17 @@ export async function getDailyNote(app: any, date: moment.Moment): Promise<TFile
   return file instanceof TFile ? file : null;
 }
 
+export function getDailyNoteFolder(app: any): string {
+  // @ts-ignore internal plugin
+  const dailyNotesPlugin = app.internalPlugins?.plugins?.["daily-notes"];
+  let folder = "";
+
+  if (dailyNotesPlugin?.instance?.options?.folder) {
+    folder = dailyNotesPlugin.instance.options.folder;
+  }
+
+  return folder;
+}
+
 export const getTodayNote = (app: any) => getDailyNote(app, moment());
 export const getYesterdayNote = (app: any) => getDailyNote(app, moment().subtract(1, "days"));

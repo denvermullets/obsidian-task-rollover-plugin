@@ -2,6 +2,7 @@ import type { Plugin } from "obsidian";
 
 export interface DailyNoteRolloverSettings {
   targetSectionHeading: string;
+  archiveFolderName: string;
   githubToken: string;
   githubUsername: string;
   githubRepos: string;
@@ -12,6 +13,7 @@ export interface DailyNoteRolloverSettings {
 
 export const DEFAULT_SETTINGS: DailyNoteRolloverSettings = {
   targetSectionHeading: "## Tasks",
+  archiveFolderName: "archive",
   githubToken: "",
   githubUsername: "",
   githubRepos: "",
