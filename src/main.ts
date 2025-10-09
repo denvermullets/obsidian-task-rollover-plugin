@@ -1,0 +1,108 @@
+import { Plugin, TFile, moment } from "obsidian";
+import DailyNoteRolloverSettingTab from "./settings";
+import { DEFAULT_SETTINGS, DailyNoteRolloverSettings } from "./types";
+import { getDailyNoteFormat, getTodayNote, getYesterdayNote, isDailyNote } from "./dailyNotes";
+import { sectionHasContent, extractUncheckedItems, appendItemsToSection } from "./sections";
+import { fetchGitHubPRs } from "./github";
+
+export default class DailyNoteRolloverPlugin extends Plugin {
+  settings: DailyNoteRolloverSettings;
+  private processedNotes = new Set<string>();
+
+  async onload() {
+    await this.loadSettings();
+    console.log("Loading Daily Note Rollover plugin");
+
+    this.addSettingTab(new DailyNoteRolloverSettingTab(this.app, this));
+
+    this.addCommand({
+      id: "rollover-unchecked-items",
+      name: "Move unchecked items from yesterday to today",
+      callback: () => this.rolloverUncheckedItems(true),
+    });
+
+    this.registerEvent(
+      this.app.vault.on("create", async (file) => {
+        if (
+          file instanceof TFile &&
+          isDailyNote(this.app, file) &&
+          file.name === moment().format(getDailyNoteFormat(this.app)) + ".md"
+        ) {
+          await this.rolloverUncheckedItems(false);
+        }
+      })
+    );
+  }
+
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
+
+  async rolloverUncheckedItems(forceRollover = false) {
+    const todayNote = await getTodayNote(this.app);
+    if (!todayNote) return;
+
+    let todayContent = await this.app.vault.read(todayNote);
+
+    if (!forceRollover) {
+      const hasTaskSection = sectionHasContent(todayContent, this.settings.targetSectionHeading);
+      const hasGithubSection =
+        this.settings.enableGithubIntegration &&
+        sectionHasContent(todayContent, this.settings.githubSectionHeading);
+      const hasOpenPRSection =
+        this.settings.enableGithubIntegration &&
+        sectionHasContent(todayContent, this.settings.githubOpenPRsHeading);
+
+      if (hasTaskSection || hasGithubSection || hasOpenPRSection) {
+        console.log("Today's note already has content, skipping rollover");
+        this.processedNotes.add(todayNote.path);
+        return;
+      }
+    }
+
+    this.processedNotes.add(todayNote.path);
+
+    const yesterdayNote = await getYesterdayNote(this.app);
+    if (yesterdayNote) {
+      const yesterdayContent = await this.app.vault.read(yesterdayNote);
+      const uncheckedItems = extractUncheckedItems(yesterdayContent);
+      if (uncheckedItems.length > 0) {
+        todayContent = appendItemsToSection(
+          todayContent,
+          uncheckedItems,
+          this.settings.targetSectionHeading
+        );
+        console.log(`Moved ${uncheckedItems.length} unchecked items to today's note`);
+      }
+    }
+
+    if (this.settings.enableGithubIntegration) {
+      const { reviewItems, openPRItems } = await fetchGitHubPRs(this.settings);
+      if (reviewItems.length > 0) {
+        todayContent = appendItemsToSection(
+          todayContent,
+          reviewItems,
+          this.settings.githubSectionHeading
+        );
+        console.log(`Added ${reviewItems.length} GitHub PR items to today's note`);
+      }
+      if (openPRItems.length > 0) {
+        todayContent = appendItemsToSection(
+          todayContent,
+          openPRItems,
+          this.settings.githubOpenPRsHeading
+        );
+        console.log(`Added ${openPRItems.length} open PR items to today's note`);
+      }
+    }
+
+    await this.app.vault.modify(todayNote, todayContent);
+  }
+
+  onunload() {
+    console.log("Unloading Daily Note Rollover plugin");
+  }
+}
