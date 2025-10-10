@@ -9,7 +9,6 @@ Well, I used a plugin that did this and it didn't work so I let Claude Code go n
 <img width="864" height="628" alt="Screenshot 2025-10-01 at 10 28 41 PM" src="https://github.com/user-attachments/assets/eadeeee2-24c6-4113-970d-c36eaf5c4691" />
 <img width="1007" height="914" alt="image" src="https://github.com/user-attachments/assets/f17506a9-55d7-4f2c-82bf-b0e2f15cabf1" />
 
-
 ## Features
 
 - Automatically moves unchecked checkbox items from yesterday's note to today's note
