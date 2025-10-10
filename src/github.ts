@@ -30,18 +30,21 @@ function parseRepos(input: string): string[] {
 export async function fetchGitHubPRs(settings: DailyNoteRolloverSettings): Promise<{
   reviewItems: string[];
   openPRItems: string[];
+  labeledItems: string[];
 }> {
   if (!settings.enableGithubIntegration || !settings.githubToken || !settings.githubUsername) {
-    return { reviewItems: [], openPRItems: [] };
+    return { reviewItems: [], openPRItems: [], labeledItems: [] };
   }
 
   const reviewItems: string[] = [];
   const openPRItems: string[] = [];
+  const labeledItems: string[] = [];
   const repos = parseRepos(settings.githubRepos);
   const sinceIso = moment().subtract(1, "days").toISOString();
 
   try {
     // Review requests
+    const reviewPRUrls = new Set<string>();
     const searchQuery = `type:pr state:open review-requested:${settings.githubUsername}`;
     const reviewRequests = await githubApiRequest(
       `https://api.github.com/search/issues?q=${encodeURIComponent(
@@ -52,44 +55,76 @@ export async function fetchGitHubPRs(settings: DailyNoteRolloverSettings): Promi
     if (reviewRequests?.items) {
       for (const pr of reviewRequests.items) {
         reviewItems.push(`- [ ] Review requested: [${pr.title}](${pr.html_url})`);
+        reviewPRUrls.add(pr.html_url);
       }
     }
 
-    // Your open & merged PRs
-    const prItems = await fetchYourOpenAndMergedPRs(repos, sinceIso, settings);
-    openPRItems.push(...prItems);
+    // Your open & merged PRs, and labeled PRs
+    const { openPRs, labeledPRs } = await fetchYourOpenAndMergedPRs(
+      repos,
+      sinceIso,
+      settings,
+      reviewPRUrls
+    );
+    openPRItems.push(...openPRs);
+    labeledItems.push(...labeledPRs);
 
-    return { reviewItems, openPRItems };
+    return { reviewItems, openPRItems, labeledItems };
   } catch (e) {
     console.error("Error fetching GitHub PRs:", e);
-    return { reviewItems: [], openPRItems: [] };
+    return { reviewItems: [], openPRItems: [], labeledItems: [] };
   }
 }
 
 export async function fetchYourOpenAndMergedPRs(
   repos: string[],
   since: string,
-  settings: DailyNoteRolloverSettings
-): Promise<string[]> {
-  const prItems: string[] = [];
+  settings: DailyNoteRolloverSettings,
+  reviewPRUrls: Set<string>
+): Promise<{ openPRs: string[]; labeledPRs: string[] }> {
+  const openPRs: string[] = [];
+  const labeledPRs: string[] = [];
+
+  const trackedLabels = settings.githubTrackedLabels
+    ? settings.githubTrackedLabels
+        .split(",")
+        .map((l) => l.trim())
+        .filter(Boolean)
+    : [];
 
   for (const repo of repos) {
     if (!repo.includes("/")) continue;
 
-    const openPRs = await githubApiRequest(
+    const allOpenPRs = await githubApiRequest(
       `https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`,
       settings
     );
 
-    if (Array.isArray(openPRs)) {
-      for (const pr of openPRs) {
+    if (Array.isArray(allOpenPRs)) {
+      for (const pr of allOpenPRs) {
+        // Your own PRs
         if (pr.user?.login === settings.githubUsername) {
           const hasActivity = new Date(pr.updated_at) >= new Date(since);
-          prItems.push(
+          openPRs.push(
             hasActivity
               ? `- [ ] 🔥 [${pr.title}](${pr.html_url}) *(activity since yesterday)*`
               : `- [ ] [${pr.title}](${pr.html_url})`
           );
+        }
+        // Labeled PRs (not yours, not assigned to you for review)
+        else if (
+          trackedLabels.length > 0 &&
+          !reviewPRUrls.has(pr.html_url) &&
+          Array.isArray(pr.labels)
+        ) {
+          const prLabelNames = pr.labels.map((l: any) => l.name);
+          const matchingLabels = prLabelNames.filter((label: string) =>
+            trackedLabels.includes(label)
+          );
+
+          if (matchingLabels.length > 0) {
+            labeledPRs.push(`- [ ] [${pr.title}](${pr.html_url})`);
+          }
         }
       }
     }
@@ -106,11 +141,11 @@ export async function fetchYourOpenAndMergedPRs(
           pr.merged_at &&
           new Date(pr.merged_at) >= new Date(since)
         ) {
-          prItems.push(`- [x] ✅ [${pr.title}](${pr.html_url}) *(merged)*`);
+          openPRs.push(`- [x] ✅ [${pr.title}](${pr.html_url}) *(merged)*`);
         }
       }
     }
   }
 
-  return prItems;
+  return { openPRs, labeledPRs };
 }

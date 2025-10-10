@@ -1,7 +1,7 @@
 {
   "id": "daily-task-rollover",
   "name": "Daily Task Rollover",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "minAppVersion": "0.15.0",
   "description": "Automatically moves unchecked items from yesterday's daily note to today's daily note",
   "author": "denvermullets",

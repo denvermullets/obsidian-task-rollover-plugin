@@ -8,6 +8,8 @@ export interface DailyNoteRolloverSettings {
   githubRepos: string;
   githubSectionHeading: string;
   githubOpenPRsHeading: string;
+  githubLabeledPRsHeading: string;
+  githubTrackedLabels: string;
   enableGithubIntegration: boolean;
 }
 
@@ -19,6 +21,8 @@ export const DEFAULT_SETTINGS: DailyNoteRolloverSettings = {
   githubRepos: "",
   githubSectionHeading: "## GitHub PRs",
   githubOpenPRsHeading: "## My Open PRs",
+  githubLabeledPRsHeading: "## Labeled PRs",
+  githubTrackedLabels: "",
   enableGithubIntegration: false,
 };
 

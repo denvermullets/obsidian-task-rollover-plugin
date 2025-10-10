@@ -1,7 +1,13 @@
 import { Plugin, TFile, moment } from "obsidian";
 import DailyNoteRolloverSettingTab from "./settings";
 import { DEFAULT_SETTINGS, DailyNoteRolloverSettings } from "./types";
-import { getDailyNoteFormat, getDailyNoteFolder, getTodayNote, getYesterdayNote, getMostRecentDailyNote, isDailyNote } from "./dailyNotes";
+import {
+  getDailyNoteFormat,
+  getDailyNoteFolder,
+  getTodayNote,
+  getMostRecentDailyNote,
+  isDailyNote,
+} from "./dailyNotes";
 import { sectionHasContent, extractUncheckedItems, appendItemsToSection } from "./sections";
 import { fetchGitHubPRs } from "./github";
 
@@ -55,8 +61,11 @@ export default class DailyNoteRolloverPlugin extends Plugin {
       const hasOpenPRSection =
         this.settings.enableGithubIntegration &&
         sectionHasContent(todayContent, this.settings.githubOpenPRsHeading);
+      const hasLabeledPRSection =
+        this.settings.enableGithubIntegration &&
+        sectionHasContent(todayContent, this.settings.githubLabeledPRsHeading);
 
-      if (hasTaskSection || hasGithubSection || hasOpenPRSection) {
+      if (hasTaskSection || hasGithubSection || hasOpenPRSection || hasLabeledPRSection) {
         console.log("Today's note already has content, skipping rollover");
         this.processedNotes.add(todayNote.path);
         return;
@@ -76,13 +85,15 @@ export default class DailyNoteRolloverPlugin extends Plugin {
           uncheckedItems,
           this.settings.targetSectionHeading
         );
-        console.log(`Moved ${uncheckedItems.length} unchecked items from ${mostRecentNote.name} to today's note`);
+        console.log(
+          `Moved ${uncheckedItems.length} unchecked items from ${mostRecentNote.name} to today's note`
+        );
         shouldArchive = true;
       }
     }
 
     if (this.settings.enableGithubIntegration) {
-      const { reviewItems, openPRItems } = await fetchGitHubPRs(this.settings);
+      const { reviewItems, openPRItems, labeledItems } = await fetchGitHubPRs(this.settings);
       if (reviewItems.length > 0) {
         todayContent = appendItemsToSection(
           todayContent,
@@ -99,6 +110,14 @@ export default class DailyNoteRolloverPlugin extends Plugin {
         );
         console.log(`Added ${openPRItems.length} open PR items to today's note`);
       }
+      if (labeledItems.length > 0) {
+        todayContent = appendItemsToSection(
+          todayContent,
+          labeledItems,
+          this.settings.githubLabeledPRsHeading
+        );
+        console.log(`Added ${labeledItems.length} labeled PR items to today's note`);
+      }
     }
 
     await this.app.vault.modify(todayNote, todayContent);
@@ -111,7 +130,9 @@ export default class DailyNoteRolloverPlugin extends Plugin {
   async archiveNote(note: TFile) {
     const dailyNoteFolder = getDailyNoteFolder(this.app);
     const archiveFolderName = this.settings.archiveFolderName || "archive";
-    const archivePath = dailyNoteFolder ? `${dailyNoteFolder}/${archiveFolderName}` : archiveFolderName;
+    const archivePath = dailyNoteFolder
+      ? `${dailyNoteFolder}/${archiveFolderName}`
+      : archiveFolderName;
     const archiveFolder = this.app.vault.getAbstractFileByPath(archivePath);
 
     if (!archiveFolder) {

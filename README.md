@@ -9,24 +9,32 @@ Well, I used a plugin that did this and it didn't work so I let Claude Code go n
 <img width="864" height="628" alt="Screenshot 2025-10-01 at 10 28 41 PM" src="https://github.com/user-attachments/assets/eadeeee2-24c6-4113-970d-c36eaf5c4691" />
 <img width="1007" height="914" alt="image" src="https://github.com/user-attachments/assets/f17506a9-55d7-4f2c-82bf-b0e2f15cabf1" />
 
-
 ## Features
 
 - Automatically moves unchecked checkbox items from yesterday's note to today's note
 - Runs on app load and when creating a new daily note
 - Manual command available: "Move unchecked items from yesterday to today"
 - Supports multiple daily note formats (YYYY-MM-DD, DD-MM-YYYY, etc.)
+- Moves previous notes to an 'archive' folder (customizable)
 - **GitHub Integration**: Track PR review requests and new comments on your PRs
+- Track PR Labels if you want to follow a certain Label on your Repos
 
 ## Installation
 
 ### Manual Installation
 
-1. Download `main.js`, `manifest.json`, and `styles.css` from the latest release
+1. Download `main.js` and `manifest.json` from the latest release
 2. Create a folder in your vault's `.obsidian/plugins/` directory called `daily-task-rollover`
 3. Copy the downloaded files into that folder
 4. Reload Obsidian
 5. Enable the plugin in Settings → Community Plugins
+
+#### Optional
+
+In this repo I've include some template files in `/sample`.
+
+1. `sample/DailyTemplateGithub_default.md` is the one that works with just straight defaults in our settings
+2. the other 2 are the templates that I personally am using day to day
 
 ### Development
 

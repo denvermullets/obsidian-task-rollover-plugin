@@ -112,6 +112,32 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+
+      new Setting(containerEl)
+        .setName("Tracked labels")
+        .setDesc('Comma-separated list of labels to monitor (e.g., "urgent, bug, needs-attention")')
+        .addTextArea((text) =>
+          text
+            .setPlaceholder("urgent, bug, needs-attention")
+            .setValue(this.plugin.settings.githubTrackedLabels)
+            .onChange(async (value) => {
+              this.plugin.settings.githubTrackedLabels = value;
+              await this.plugin.saveSettings();
+            })
+        );
+
+      new Setting(containerEl)
+        .setName("Labeled PRs section heading")
+        .setDesc("Where labeled PRs appear (only if tracked labels is set)")
+        .addText((text) =>
+          text
+            .setPlaceholder("## Labeled PRs")
+            .setValue(this.plugin.settings.githubLabeledPRsHeading)
+            .onChange(async (value) => {
+              this.plugin.settings.githubLabeledPRsHeading = value;
+              await this.plugin.saveSettings();
+            })
+        );
     }
   }
 }
