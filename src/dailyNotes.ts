@@ -67,3 +67,33 @@ export function getDailyNoteFolder(app: any): string {
 
 export const getTodayNote = (app: any) => getDailyNote(app, moment());
 export const getYesterdayNote = (app: any) => getDailyNote(app, moment().subtract(1, "days"));
+
+export async function getMostRecentDailyNote(app: any): Promise<TFile | null> {
+  const folder = getDailyNoteFolder(app);
+  const format = getDailyNoteFormat(app);
+
+  // Get all files in the daily notes folder
+  const folderPath = folder || "/";
+  const abstractFolder = app.vault.getAbstractFileByPath(folderPath);
+
+  if (!abstractFolder || !(abstractFolder as any).children) {
+    return null;
+  }
+
+  const today = moment().format(format) + ".md";
+  const files = (abstractFolder as any).children
+    .filter((file: any) => file instanceof TFile && file.extension === "md" && file.name !== today)
+    .map((file: TFile) => {
+      // Try to parse the date from the filename
+      const nameWithoutExt = file.name.replace(".md", "");
+      const parsedDate = moment(nameWithoutExt, format, true);
+      return {
+        file,
+        date: parsedDate.isValid() ? parsedDate : null,
+      };
+    })
+    .filter((item: any) => item.date !== null)
+    .sort((a: any, b: any) => b.date.valueOf() - a.date.valueOf());
+
+  return files.length > 0 ? files[0].file : null;
+}
