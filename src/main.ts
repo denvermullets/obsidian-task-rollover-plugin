@@ -1,7 +1,7 @@
 import { Plugin, TFile, moment } from "obsidian";
 import DailyNoteRolloverSettingTab from "./settings";
 import { DEFAULT_SETTINGS, DailyNoteRolloverSettings } from "./types";
-import { getDailyNoteFormat, getDailyNoteFolder, getTodayNote, getYesterdayNote, isDailyNote } from "./dailyNotes";
+import { getDailyNoteFormat, getDailyNoteFolder, getTodayNote, getYesterdayNote, getMostRecentDailyNote, isDailyNote } from "./dailyNotes";
 import { sectionHasContent, extractUncheckedItems, appendItemsToSection } from "./sections";
 import { fetchGitHubPRs } from "./github";
 
@@ -65,18 +65,18 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 
     this.processedNotes.add(todayNote.path);
 
-    const yesterdayNote = await getYesterdayNote(this.app);
+    const mostRecentNote = await getMostRecentDailyNote(this.app);
     let shouldArchive = false;
-    if (yesterdayNote) {
-      const yesterdayContent = await this.app.vault.read(yesterdayNote);
-      const uncheckedItems = extractUncheckedItems(yesterdayContent);
+    if (mostRecentNote) {
+      const mostRecentContent = await this.app.vault.read(mostRecentNote);
+      const uncheckedItems = extractUncheckedItems(mostRecentContent);
       if (uncheckedItems.length > 0) {
         todayContent = appendItemsToSection(
           todayContent,
           uncheckedItems,
           this.settings.targetSectionHeading
         );
-        console.log(`Moved ${uncheckedItems.length} unchecked items to today's note`);
+        console.log(`Moved ${uncheckedItems.length} unchecked items from ${mostRecentNote.name} to today's note`);
         shouldArchive = true;
       }
     }
@@ -103,8 +103,8 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 
     await this.app.vault.modify(todayNote, todayContent);
 
-    if (shouldArchive && yesterdayNote) {
-      await this.archiveNote(yesterdayNote);
+    if (shouldArchive && mostRecentNote) {
+      await this.archiveNote(mostRecentNote);
     }
   }
 
