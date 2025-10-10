@@ -66,7 +66,6 @@ export function getDailyNoteFolder(app: any): string {
 }
 
 export const getTodayNote = (app: any) => getDailyNote(app, moment());
-export const getYesterdayNote = (app: any) => getDailyNote(app, moment().subtract(1, "days"));
 
 export async function getMostRecentDailyNote(app: any): Promise<TFile | null> {
   const folder = getDailyNoteFolder(app);
