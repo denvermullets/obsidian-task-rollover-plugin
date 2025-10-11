@@ -9,7 +9,6 @@ Well, I used a plugin that did this and it didn't work so I let Claude Code go n
 <img width="864" height="628" alt="Screenshot 2025-10-01 at 10 28 41 PM" src="https://github.com/user-attachments/assets/eadeeee2-24c6-4113-970d-c36eaf5c4691" />
 <img width="1214" height="1104" alt="Screenshot 2025-10-10 at 11 19 39 AM" src="https://github.com/user-attachments/assets/b9e6d110-5de8-4099-aa07-59cf15287dcb" />
 
-
 ## Features
 
 - Automatically moves unchecked checkbox items from yesterday's note to today's note
@@ -40,15 +39,17 @@ In this repo I've include some template files in `/sample`.
 ### Development
 
 1. Clone this repository into your vault's `.obsidian/plugins/` folder
-2. Run `npm install` to install dependencies
-3. Run `npm run dev` to start compilation in watch mode
+2. Run `yarn install` to install dependencies
+3. Run `yarn dev` to start compilation in watch mode
 4. Reload Obsidian to load the plugin
 5. Make changes and reload to see them take effect
 
+> Consider using Obsidian hot reload plugin for better dev experience https://discordapp.com/channels/979539930869010452/1257773276835479572/1426609118436790314
+
 ## Building
 
-- `npm run build` - Builds the plugin for production
-- `npm run dev` - Builds the plugin and watches for changes
+- `yarn build` - Builds the plugin for production
+- `yarn dev` - Builds the plugin and watches for changes
 
 ## Configuration
 
