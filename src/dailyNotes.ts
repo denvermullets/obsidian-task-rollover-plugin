@@ -1,13 +1,7 @@
 import { type App, TFile, TFolder, moment } from "obsidian";
-import { InternalPlugin } from "obsidian-typings";
+import { getInternalPlugin } from "./util";
 export function getDailyNoteFormat(app: App): string {
-  // todo: extract this into a generic function to check internal plugins.
-  const dailyNotesPluginCheck = app.internalPlugins.getEnabledPluginById("daily-notes");
-  if (dailyNotesPluginCheck === null || !dailyNotesPluginCheck.plugin.enabled) {
-    throw new Error("Missing plugin, please install & enable daily-notes plugin");
-  }
-  const dailyNotesPlugin: InternalPlugin<typeof dailyNotesPluginCheck> =
-    dailyNotesPluginCheck.plugin;
+  const dailyNotesPlugin = getInternalPlugin({ id: "daily-notes", app: this.app });
 
   let format = "YYYY-MM-DD";
   if (dailyNotesPlugin?.instance?.options?.format) {
@@ -17,12 +11,7 @@ export function getDailyNoteFormat(app: App): string {
 }
 
 export function isDailyNote(app: App, file: TFile): boolean {
-  const dailyNotesPluginCheck = app.internalPlugins.getEnabledPluginById("daily-notes");
-  if (dailyNotesPluginCheck === null || !dailyNotesPluginCheck.plugin.enabled) {
-    throw new Error("Missing plugin, please install & enable daily-notes plugin");
-  }
-  const dailyNotesPlugin: InternalPlugin<typeof dailyNotesPluginCheck> =
-    dailyNotesPluginCheck.plugin;
+  const dailyNotesPlugin = getInternalPlugin({ id: "daily-notes", app: this.app });
 
   let format = "YYYY-MM-DD";
   let folder = "";
@@ -42,12 +31,7 @@ export function isDailyNote(app: App, file: TFile): boolean {
 }
 
 export async function getDailyNote(app: App, date: moment.Moment): Promise<TFile | null> {
-  const dailyNotesPluginCheck = app.internalPlugins.getEnabledPluginById("daily-notes");
-  if (dailyNotesPluginCheck === null || dailyNotesPluginCheck.plugin.enabled) {
-    throw new Error("Missing plugin, please install & enable daily-notes plugin");
-  }
-  const dailyNotesPlugin: InternalPlugin<typeof dailyNotesPluginCheck> =
-    dailyNotesPluginCheck.plugin;
+  const dailyNotesPlugin = getInternalPlugin({ id: "daily-notes", app: this.app });
 
   let format = "YYYY-MM-DD";
   let folder = "";
@@ -66,8 +50,8 @@ export async function getDailyNote(app: App, date: moment.Moment): Promise<TFile
 }
 
 export function getDailyNoteFolder(app: App): string {
-  // @ts-ignore internal plugin
-  const dailyNotesPlugin = app.internalPlugins?.plugins?.["daily-notes"];
+  const dailyNotesPlugin = getInternalPlugin({ id: "daily-notes", app: this.app });
+
   let folder = "";
 
   if (dailyNotesPlugin?.instance?.options?.folder) {
