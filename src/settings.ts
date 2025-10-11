@@ -1,5 +1,6 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, ButtonComponent, PluginSettingTab, Setting } from "obsidian";
 import type DailyNoteRolloverPlugin from "./main";
+import { arrayMove } from "./util";
 
 export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
   plugin: DailyNoteRolloverPlugin;
@@ -14,6 +15,61 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     containerEl.createEl("h2", { text: "Task Rollover Settings" });
+
+    new Setting(this.containerEl)
+      .setName("Task extraction sections to skip")
+      .setDesc("Allows setting a list of sections that should be ignored during auto rollover")
+      .addButton((button: ButtonComponent) => {
+        button
+          .setTooltip("Add excluded section")
+          .setButtonText("+")
+          .setCta()
+          .onClick(async () => {
+            this.plugin.settings.skippedTaskExtractionSections.push("");
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
+
+    this.plugin.settings.skippedTaskExtractionSections.forEach((excludedSection, index) => {
+      const s = new Setting(containerEl)
+        .addSearch((cb) => {
+          cb.setPlaceholder("Section")
+            .setValue(excludedSection)
+            .onChange(async (newFolder) => {
+              this.plugin.settings.skippedTaskExtractionSections[index] = newFolder;
+              await this.plugin.saveSettings();
+            });
+        })
+        .addExtraButton((cb) => {
+          cb.setIcon("up-chevron-glyph")
+            .setTooltip("Move up")
+            .onClick(async () => {
+              arrayMove(this.plugin.settings.skippedTaskExtractionSections, index, index - 1);
+              await this.plugin.saveSettings();
+              this.display();
+            });
+        })
+        .addExtraButton((cb) => {
+          cb.setIcon("down-chevron-glyph")
+            .setTooltip("Move down")
+            .onClick(async () => {
+              arrayMove(this.plugin.settings.skippedTaskExtractionSections, index, index + 1);
+              await this.plugin.saveSettings();
+              this.display();
+            });
+        })
+        .addExtraButton((cb) => {
+          cb.setIcon("cross")
+            .setTooltip("Delete")
+            .onClick(async () => {
+              this.plugin.settings.skippedTaskExtractionSections.splice(index, 1);
+              await this.plugin.saveSettings();
+              this.display();
+            });
+        });
+      s.infoEl.remove();
+    });
 
     new Setting(containerEl)
       .setName("Target section heading")
@@ -30,7 +86,9 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Archive folder name")
-      .setDesc('Subfolder name for archived notes (e.g., "archive" or "old-notes"). Will be created relative to your daily notes folder.')
+      .setDesc(
+        'Subfolder name for archived notes (e.g., "archive" or "old-notes"). Will be created relative to your daily notes folder.'
+      )
       .addText((text) =>
         text
           .setPlaceholder("archive")

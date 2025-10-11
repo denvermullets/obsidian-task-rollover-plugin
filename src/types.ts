@@ -11,6 +11,7 @@ export interface DailyNoteRolloverSettings {
   githubLabeledPRsHeading: string;
   githubTrackedLabels: string;
   enableGithubIntegration: boolean;
+  skippedTaskExtractionSections: string[];
 }
 
 export const DEFAULT_SETTINGS: DailyNoteRolloverSettings = {
@@ -24,6 +25,7 @@ export const DEFAULT_SETTINGS: DailyNoteRolloverSettings = {
   githubLabeledPRsHeading: "## Labeled PRs",
   githubTrackedLabels: "",
   enableGithubIntegration: false,
+  skippedTaskExtractionSections: ["#### -> Personal tasks"],
 };
 
 export type PluginWithSettings<T> = Plugin & { settings: T };
