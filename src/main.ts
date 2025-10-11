@@ -8,7 +8,11 @@ import {
   getMostRecentDailyNote,
   isDailyNote,
 } from "./dailyNotes";
-import { sectionHasContent, extractUncheckedItems, appendItemsToSection } from "./sections";
+import {
+  sectionHasContent,
+  appendItemsToSection,
+  extractUncheckedItemsFromSections,
+} from "./sections";
 import { fetchGitHubPRs } from "./github";
 
 export default class DailyNoteRolloverPlugin extends Plugin {
@@ -78,7 +82,10 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     let shouldArchive = false;
     if (mostRecentNote) {
       const mostRecentContent = await this.app.vault.read(mostRecentNote);
-      const uncheckedItems = extractUncheckedItems(mostRecentContent);
+      const uncheckedItems = await extractUncheckedItemsFromSections(
+        mostRecentContent,
+        this.settings
+      );
       if (uncheckedItems.length > 0) {
         todayContent = appendItemsToSection(
           todayContent,
