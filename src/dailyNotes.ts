@@ -1,8 +1,14 @@
-import { App, TFile, TFolder, moment } from "obsidian";
-
+import { type App, TFile, TFolder, moment } from "obsidian";
+import { InternalPlugin } from "obsidian-typings";
 export function getDailyNoteFormat(app: App): string {
-  // @ts-ignore internal plugin
-  const dailyNotesPlugin = app.internalPlugins?.plugins?.["daily-notes"];
+  // todo: extract this into a generic function to check internal plugins.
+  const dailyNotesPluginCheck = app.internalPlugins.getEnabledPluginById("daily-notes");
+  if (dailyNotesPluginCheck === null || !dailyNotesPluginCheck.plugin.enabled) {
+    throw new Error("Missing plugin, please install & enable daily-notes plugin");
+  }
+  const dailyNotesPlugin: InternalPlugin<typeof dailyNotesPluginCheck> =
+    dailyNotesPluginCheck.plugin;
+
   let format = "YYYY-MM-DD";
   if (dailyNotesPlugin?.instance?.options?.format) {
     format = dailyNotesPlugin.instance.options.format;
@@ -11,17 +17,19 @@ export function getDailyNoteFormat(app: App): string {
 }
 
 export function isDailyNote(app: App, file: TFile): boolean {
-  // @ts-ignore internal plugin
-  const dailyNotesPlugin = app.internalPlugins?.plugins?.["daily-notes"];
+  const dailyNotesPluginCheck = app.internalPlugins.getEnabledPluginById("daily-notes");
+  if (dailyNotesPluginCheck === null || !dailyNotesPluginCheck.plugin.enabled) {
+    throw new Error("Missing plugin, please install & enable daily-notes plugin");
+  }
+  const dailyNotesPlugin: InternalPlugin<typeof dailyNotesPluginCheck> =
+    dailyNotesPluginCheck.plugin;
 
   let format = "YYYY-MM-DD";
   let folder = "";
 
-  if (dailyNotesPlugin?.instance?.options) {
-    const options = dailyNotesPlugin.instance.options;
-    if (options.format) format = options.format;
-    if (options.folder) folder = options.folder;
-  }
+  const options = dailyNotesPlugin.instance.options;
+  if (options.format) format = options.format;
+  if (options.folder) folder = options.folder;
 
   if (folder) {
     const expectedFolder = folder.endsWith("/") ? folder : folder + "/";
@@ -34,8 +42,12 @@ export function isDailyNote(app: App, file: TFile): boolean {
 }
 
 export async function getDailyNote(app: App, date: moment.Moment): Promise<TFile | null> {
-  // @ts-ignore internal plugin
-  const dailyNotesPlugin = app.internalPlugins?.plugins?.["daily-notes"];
+  const dailyNotesPluginCheck = app.internalPlugins.getEnabledPluginById("daily-notes");
+  if (dailyNotesPluginCheck === null || dailyNotesPluginCheck.plugin.enabled) {
+    throw new Error("Missing plugin, please install & enable daily-notes plugin");
+  }
+  const dailyNotesPlugin: InternalPlugin<typeof dailyNotesPluginCheck> =
+    dailyNotesPluginCheck.plugin;
 
   let format = "YYYY-MM-DD";
   let folder = "";
