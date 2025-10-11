@@ -1,6 +1,6 @@
-import { TFile, moment } from "obsidian";
+import { App, TFile, TFolder, moment } from "obsidian";
 
-export function getDailyNoteFormat(app: any): string {
+export function getDailyNoteFormat(app: App): string {
   // @ts-ignore internal plugin
   const dailyNotesPlugin = app.internalPlugins?.plugins?.["daily-notes"];
   let format = "YYYY-MM-DD";
@@ -10,7 +10,7 @@ export function getDailyNoteFormat(app: any): string {
   return format;
 }
 
-export function isDailyNote(app: any, file: TFile): boolean {
+export function isDailyNote(app: App, file: TFile): boolean {
   // @ts-ignore internal plugin
   const dailyNotesPlugin = app.internalPlugins?.plugins?.["daily-notes"];
 
@@ -33,7 +33,7 @@ export function isDailyNote(app: any, file: TFile): boolean {
   return file.name === today || file.name === yesterday;
 }
 
-export async function getDailyNote(app: any, date: moment.Moment): Promise<TFile | null> {
+export async function getDailyNote(app: App, date: moment.Moment): Promise<TFile | null> {
   // @ts-ignore internal plugin
   const dailyNotesPlugin = app.internalPlugins?.plugins?.["daily-notes"];
 
@@ -53,7 +53,7 @@ export async function getDailyNote(app: any, date: moment.Moment): Promise<TFile
   return file instanceof TFile ? file : null;
 }
 
-export function getDailyNoteFolder(app: any): string {
+export function getDailyNoteFolder(app: App): string {
   // @ts-ignore internal plugin
   const dailyNotesPlugin = app.internalPlugins?.plugins?.["daily-notes"];
   let folder = "";
@@ -65,9 +65,9 @@ export function getDailyNoteFolder(app: any): string {
   return folder;
 }
 
-export const getTodayNote = (app: any) => getDailyNote(app, moment());
+export const getTodayNote = (app: App) => getDailyNote(app, moment());
 
-export async function getMostRecentDailyNote(app: any): Promise<TFile | null> {
+export async function getMostRecentDailyNote(app: App): Promise<TFile | null> {
   const folder = getDailyNoteFolder(app);
   const format = getDailyNoteFormat(app);
 
@@ -75,13 +75,20 @@ export async function getMostRecentDailyNote(app: any): Promise<TFile | null> {
   const folderPath = folder || "/";
   const abstractFolder = app.vault.getAbstractFileByPath(folderPath);
 
-  if (!abstractFolder || !(abstractFolder as any).children) {
+  if (!abstractFolder || !(abstractFolder instanceof TFolder)) {
     return null;
   }
 
+  interface FileAndDate {
+    file: TFile;
+    date: moment.Moment;
+  }
+
   const today = moment().format(format) + ".md";
-  const files = (abstractFolder as any).children
-    .filter((file: any) => file instanceof TFile && file.extension === "md" && file.name !== today)
+  const files = abstractFolder.children
+    .filter(
+      (file: TFile) => file instanceof TFile && file.extension === "md" && file.name !== today
+    )
     .map((file: TFile) => {
       // Try to parse the date from the filename
       const nameWithoutExt = file.name.replace(".md", "");
@@ -91,8 +98,8 @@ export async function getMostRecentDailyNote(app: any): Promise<TFile | null> {
         date: parsedDate.isValid() ? parsedDate : null,
       };
     })
-    .filter((item: any) => item.date !== null)
-    .sort((a: any, b: any) => b.date.valueOf() - a.date.valueOf());
+    .filter((item: FileAndDate) => item.date !== null)
+    .sort((a: FileAndDate, b: FileAndDate) => b.date.valueOf() - a.date.valueOf());
 
   return files.length > 0 ? files[0].file : null;
 }

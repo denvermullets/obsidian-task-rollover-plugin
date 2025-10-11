@@ -90,6 +90,8 @@ export default class DailyNoteRolloverPlugin extends Plugin {
         );
         shouldArchive = true;
       }
+    } else {
+      console.log("No note found for previous day, check archive.");
     }
 
     if (this.settings.enableGithubIntegration) {
