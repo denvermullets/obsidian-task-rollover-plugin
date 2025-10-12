@@ -20,6 +20,24 @@ Well, I used a plugin that did this and it didn't work so I let Claude Code go n
 - Moves previous notes to an 'archive' folder (customizable)
 - **GitHub Integration**: Track PR review requests, your own open/merged PRs with activity indicators, and labeled PRs from monitored repos
 
+## How it Works
+
+### Task Rollover
+
+The plugin looks for unchecked items (lines starting with `- [ ]`, `* [ ]`, or `+ [ ]`) in yesterday's daily note and inserts them into today's note at your specified section heading.
+
+### GitHub Integration
+
+When enabled, the plugin queries the GitHub API to:
+
+1. **Search for review requests**: Finds all open PRs where you've been requested as a reviewer
+2. **Track your open PRs**: Fetches all open PRs from monitored repos authored by you
+   - Checks if they've been updated in the last 24 hours (shows 🔥 indicator if yes)
+3. **Track your merged PRs**: Checks recently closed PRs to find ones you authored that were merged in the last 24 hours (shows ✅ and automatically checks them off)
+4. **Track labeled PRs**: Filters PRs from monitored repos that match your tracked labels (excludes PRs where you're already the author or reviewer)
+
+All PR information is added as task items in their respective sections in your daily note.
+
 ## Installation
 
 ### Manual Installation
@@ -30,43 +48,6 @@ Well, I used a plugin that did this and it didn't work so I let Claude Code go n
 4. Reload Obsidian
 5. Enable the plugin in Settings → Community Plugins
 
-## Sample Templates
-
-The [sample](sample/) directory contains example daily note templates demonstrating different configurations:
-
-1. **[DailyTemplate_default.md](sample/DailyTemplate_default.md)** - Basic template using standard markdown headings that works with default plugin settings. Includes sections for Tasks, GitHub PRs, My Open PRs, Labeled PRs, and Notes.
-
-2. **[DailyTemplateGithub.md](sample/DailyTemplateGithub.md)** - Minimalist template using `#### ->` prefix headings for a cleaner look. Demonstrates custom section heading configuration.
-
-3. **[DailyTemplateCallout.md](sample/DailyTemplateCallout.md)** - Advanced template using Obsidian callout syntax (e.g., `>[!tip]+`, `>[!note]+`) for collapsible, styled sections. Shows how the plugin supports callout-based headings.
-
-4. **[DailyTemplateCalloutCustomCss.md](sample/DailyTemplateCalloutCustomCss.md)** & **[DailyTemplateCalloutCustomCss.css](sample/DailyTemplateCalloutCustomCss.css)** - Example of heavily customized callouts with a companion CSS snippet that defines custom icons and colors for callout types like "hot-list", "reviews-requested", "my-prs", etc.
-
-### Using Custom CSS Snippets
-
-To use the custom CSS file (e.g., `DailyTemplateCalloutCustomCss.css`):
-
-1. Copy the CSS file to your vault's snippets folder: `YourVault/.obsidian/snippets/`
-2. In Obsidian, go to Settings → Appearance → CSS snippets
-3. Click the refresh icon to detect the new snippet
-4. Toggle the snippet on to enable it
-
-For more information, see the [official Obsidian CSS snippets documentation](https://help.obsidian.md/Extending+Obsidian/CSS+snippets).
-
-### Development
-
-1. Clone this repository into your vault's `.obsidian/plugins/` folder
-2. Run `yarn install` to install dependencies
-3. Run `yarn dev` to start compilation in watch mode
-4. Reload Obsidian to load the plugin
-5. Make changes and reload to see them take effect
-
-> Consider using Obsidian hot reload plugin for better dev experience https://discordapp.com/channels/979539930869010452/1257773276835479572/1426609118436790314
-
-## Building
-
-- `yarn build` - Builds the plugin for production
-- `yarn dev` - Builds the plugin and watches for changes
 
 ## Configuration
 
@@ -137,23 +118,28 @@ The plugin will add task items organized by type:
 
 These items are inserted at their respective section headings, making it easy to track your GitHub activity alongside your daily tasks.
 
-## How it Works
+## Sample Templates
 
-### Task Rollover
+The [sample](sample/) directory contains example daily note templates demonstrating different configurations:
 
-The plugin looks for unchecked items (lines starting with `- [ ]`, `* [ ]`, or `+ [ ]`) in yesterday's daily note and inserts them into today's note at your specified section heading.
+1. **[DailyTemplate_default.md](sample/DailyTemplate_default.md)** - Basic template using standard markdown headings that works with default plugin settings. Includes sections for Tasks, GitHub PRs, My Open PRs, Labeled PRs, and Notes.
 
-### GitHub Integration
+2. **[DailyTemplateGithub.md](sample/DailyTemplateGithub.md)** - Minimalist template using `#### ->` prefix headings for a cleaner look. Demonstrates custom section heading configuration.
 
-When enabled, the plugin queries the GitHub API to:
+3. **[DailyTemplateCallout.md](sample/DailyTemplateCallout.md)** - Advanced template using Obsidian callout syntax (e.g., `>[!tip]+`, `>[!note]+`) for collapsible, styled sections. Shows how the plugin supports callout-based headings.
 
-1. **Search for review requests**: Finds all open PRs where you've been requested as a reviewer
-2. **Track your open PRs**: Fetches all open PRs from monitored repos authored by you
-   - Checks if they've been updated in the last 24 hours (shows 🔥 indicator if yes)
-3. **Track your merged PRs**: Checks recently closed PRs to find ones you authored that were merged in the last 24 hours (shows ✅ and automatically checks them off)
-4. **Track labeled PRs**: Filters PRs from monitored repos that match your tracked labels (excludes PRs where you're already the author or reviewer)
+4. **[DailyTemplateCalloutCustomCss.md](sample/DailyTemplateCalloutCustomCss.md)** & **[DailyTemplateCalloutCustomCss.css](sample/DailyTemplateCalloutCustomCss.css)** - Example of heavily customized callouts with a companion CSS snippet that defines custom icons and colors for callout types like "hot-list", "reviews-requested", "my-prs", etc.
 
-All PR information is added as task items in their respective sections in your daily note.
+### Using Custom CSS Snippets
+
+To use the custom CSS file (e.g., `DailyTemplateCalloutCustomCss.css`):
+
+1. Copy the CSS file to your vault's snippets folder: `YourVault/.obsidian/snippets/`
+2. In Obsidian, go to Settings → Appearance → CSS snippets
+3. Click the refresh icon to detect the new snippet
+4. Toggle the snippet on to enable it
+
+For more information, see the [official Obsidian CSS snippets documentation](https://help.obsidian.md/Extending+Obsidian/CSS+snippets).
 
 ## Supported Daily Note Formats
 
@@ -164,6 +150,55 @@ All PR information is added as task items in their respective sections in your d
 - `YYYYMMDD` (e.g., 20240115)
 
 The plugin also checks for notes in a "Daily Notes" folder.
+
+### Development
+
+1. Clone this repository into your vault's `.obsidian/plugins/` folder
+2. Run `yarn install` to install dependencies
+3. Run `yarn dev` to start compilation in watch mode
+4. Reload Obsidian to load the plugin
+5. Make changes and reload to see them take effect
+
+> Consider using Obsidian hot reload plugin for better dev experience https://discordapp.com/channels/979539930869010452/1257773276835479572/1426609118436790314
+
+## Building
+
+- `yarn build` - Builds the plugin for production
+- `yarn dev` - Builds the plugin and watches for changes
+
+## Releasing
+
+To create a new patch release:
+
+```bash
+yarn release-patch
+```
+
+This command will:
+1. Bump the patch version in [package.json](package.json) (e.g., 0.8.1 → 0.8.2)
+2. Update [manifest.json](manifest.json) and [versions.json](versions.json) with the new version
+3. Create a git commit with the version changes
+4. Create a git tag (e.g., v0.8.2)
+5. Push both the commit and tag to the remote repository
+
+### Manual Release Process
+
+If you need more control over the release:
+
+```bash
+# Bump version (patch, minor, or major)
+yarn version --patch  # or --minor, --major
+
+# Push changes and tags
+git push && git push origin v$(node scripts/get-version.mjs)
+```
+
+### Important Notes
+
+- The `yarn version` command automatically creates a git commit and tag
+- The [version-bump.mjs](scripts/version-bump.mjs) script runs via the `postversion` hook to keep [manifest.json](manifest.json) and [versions.json](versions.json) in sync with [package.json](package.json)
+- Make sure you're on the correct branch before releasing
+- Ensure all tests pass and the build succeeds before releasing
 
 ## License
 
