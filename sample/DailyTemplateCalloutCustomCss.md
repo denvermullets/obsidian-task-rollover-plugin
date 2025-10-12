@@ -1,17 +1,15 @@
-> [!morning-routine]+
->
-> - [ ] Task 1
-> - [ ] Task 2
+>[!morning-routine]+
+>- [ ] Task 1
+>- [ ] Task 2
 
-> [!hot-list]+
+>[!hot-list]+
 
-> [!reviews-requested]+
+>[!reviews-requested]+
 
-> [!my-prs]+
+>[!my-prs]+
 
-> [!todays-todos]+
->
-> - [ ]
+>[!todays-todos]+
+>- [ ]
 
 ##### -> 💡 Ideas
 

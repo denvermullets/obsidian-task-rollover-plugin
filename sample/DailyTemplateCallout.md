@@ -1,12 +1,11 @@
-> [!tip]+ Hot list
+>[!tip]+ Hot list
 
-> [!note]+ Review requested
+>[!note]+ Review requested
 
-> [!success]+ My PRs
+>[!success]+ My PRs
 
-> [!note]+ Today's todos
->
-> - [ ]
+>[!note]+ Today's todos
+>- [ ]
 
 ##### -> 💡 Ideas
 
