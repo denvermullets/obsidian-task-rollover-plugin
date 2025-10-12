@@ -1,0 +1,20 @@
+.callout[data-callout="personal-tasks"] {
+    --callout-color: 15, 237, 96;
+    --callout-icon: lucide-list;
+}
+.callout[data-callout="my-prs"] {
+    --callout-color: 15, 237, 96;
+    --callout-icon: lucide-git-pull-request;
+}
+.callout[data-callout="morning-routine"] {
+    --callout-color: 155, 249, 141;
+    --callout-icon: lucide-sun;
+}
+.callout[data-callout="hot-list"] {
+    --callout-color: 255, 153, 0;
+    --callout-icon: lucide-flame;
+}
+.callout[data-callout="reviews-requested"] {
+    --callout-color: 174, 0, 255;
+    --callout-icon: lucide-search;
+}
