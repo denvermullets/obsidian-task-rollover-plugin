@@ -1,5 +1,7 @@
+import { isCalloutHeader } from "./util";
 import { moment } from "obsidian";
 import type { DailyNoteRolloverSettings } from "./types";
+import { CALLOUT_PREFIX } from "./constants";
 
 async function githubApiRequest(url: string, settings: DailyNoteRolloverSettings): Promise<any> {
   const response = await fetch(url, {
@@ -53,8 +55,9 @@ export async function fetchGitHubPRs(settings: DailyNoteRolloverSettings): Promi
       settings
     );
     if (reviewRequests?.items) {
+      const calloutPrefix = isCalloutHeader(settings.githubSectionHeading) ? CALLOUT_PREFIX : "";
       for (const pr of reviewRequests.items) {
-        reviewItems.push(`- [ ] Review requested: [${pr.title}](${pr.html_url})`);
+        reviewItems.push(`${calloutPrefix}- [ ] Review requested: [${pr.title}](${pr.html_url})`);
         reviewPRUrls.add(pr.html_url);
       }
     }
@@ -99,6 +102,10 @@ export async function fetchYourOpenAndMergedPRs(
       `https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`,
       settings
     );
+    const trackedCalloutPrefix = isCalloutHeader(settings.githubTrackedLabels)
+      ? CALLOUT_PREFIX
+      : "";
+    const openCalloutPrefix = isCalloutHeader(settings.githubOpenPRsHeading) ? CALLOUT_PREFIX : "";
 
     if (Array.isArray(allOpenPRs)) {
       for (const pr of allOpenPRs) {
@@ -107,8 +114,8 @@ export async function fetchYourOpenAndMergedPRs(
           const hasActivity = new Date(pr.updated_at) >= new Date(since);
           openPRs.push(
             hasActivity
-              ? `- [ ] 🔥 [${pr.title}](${pr.html_url}) *(activity since yesterday)*`
-              : `- [ ] [${pr.title}](${pr.html_url})`
+              ? `${openCalloutPrefix}- [ ] 🔥 [${pr.title}](${pr.html_url}) *(activity since yesterday)*`
+              : `${openCalloutPrefix}- [ ] [${pr.title}](${pr.html_url})`
           );
         }
         // Labeled PRs (not yours, not assigned to you for review)
@@ -123,7 +130,7 @@ export async function fetchYourOpenAndMergedPRs(
           );
 
           if (matchingLabels.length > 0) {
-            labeledPRs.push(`- [ ] [${pr.title}](${pr.html_url})`);
+            labeledPRs.push(`${trackedCalloutPrefix}- [ ] [${pr.title}](${pr.html_url})`);
           }
         }
       }
