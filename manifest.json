@@ -3,7 +3,7 @@
   "name": "Daily Task Rollover",
   "version": "0.8.0",
   "minAppVersion": "0.15.0",
-  "description": "Automatically moves unchecked items from yesterday's daily note to today's daily note",
+  "description": "Automatically moves unchecked items from yesterday's daily note to today's daily note w/some Github checks",
   "author": "denvermullets",
   "authorUrl": "https://github.com/denvermullets/obsidian-task-rollover-plugin",
   "isDesktopOnly": true
