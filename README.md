@@ -30,12 +30,28 @@ Well, I used a plugin that did this and it didn't work so I let Claude Code go n
 4. Reload Obsidian
 5. Enable the plugin in Settings → Community Plugins
 
-#### Optional
+## Sample Templates
 
-In this repo I've include some template files in `/sample`.
+The [sample](sample/) directory contains example daily note templates demonstrating different configurations:
 
-1. `sample/DailyTemplateGithub_default.md` is the one that works with just straight defaults in our settings
-2. the other 2 are the templates that I personally am using day to day
+1. **[DailyTemplate_default.md](sample/DailyTemplate_default.md)** - Basic template using standard markdown headings that works with default plugin settings. Includes sections for Tasks, GitHub PRs, My Open PRs, Labeled PRs, and Notes.
+
+2. **[DailyTemplateGithub.md](sample/DailyTemplateGithub.md)** - Minimalist template using `#### ->` prefix headings for a cleaner look. Demonstrates custom section heading configuration.
+
+3. **[DailyTemplateCallout.md](sample/DailyTemplateCallout.md)** - Advanced template using Obsidian callout syntax (e.g., `>[!tip]+`, `>[!note]+`) for collapsible, styled sections. Shows how the plugin supports callout-based headings.
+
+4. **[DailyTemplateCalloutCustomCss.md](sample/DailyTemplateCalloutCustomCss.md)** & **[DailyTemplateCalloutCustomCss.css](sample/DailyTemplateCalloutCustomCss.css)** - Example of heavily customized callouts with a companion CSS snippet that defines custom icons and colors for callout types like "hot-list", "reviews-requested", "my-prs", etc.
+
+### Using Custom CSS Snippets
+
+To use the custom CSS file (e.g., `DailyTemplateCalloutCustomCss.css`):
+
+1. Copy the CSS file to your vault's snippets folder: `YourVault/.obsidian/snippets/`
+2. In Obsidian, go to Settings → Appearance → CSS snippets
+3. Click the refresh icon to detect the new snippet
+4. Toggle the snippet on to enable it
+
+For more information, see the [official Obsidian CSS snippets documentation](https://help.obsidian.md/Extending+Obsidian/CSS+snippets).
 
 ### Development
 
