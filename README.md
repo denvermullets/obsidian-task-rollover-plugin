@@ -15,9 +15,10 @@ Well, I used a plugin that did this and it didn't work so I let Claude Code go n
 - Runs on app load and when creating a new daily note
 - Manual command available: "Move unchecked items from yesterday to today"
 - Supports multiple daily note formats (YYYY-MM-DD, DD-MM-YYYY, etc.)
+- Supports Obsidian callout syntax for section headings (e.g., `>[!info]`)
+- Configurable section skipping - exclude specific sections from automatic rollover
 - Moves previous notes to an 'archive' folder (customizable)
-- **GitHub Integration**: Track PR review requests and new comments on your PRs
-- Track PR Labels if you want to follow a certain Label on your Repos
+- **GitHub Integration**: Track PR review requests, your own open/merged PRs with activity indicators, and labeled PRs from monitored repos
 
 ## Installation
 
@@ -59,13 +60,22 @@ In this repo I've include some template files in `/sample`.
 2. Configure the **Target section heading** where unchecked tasks should be inserted (default: `## Tasks`)
    - This heading should exist in your daily note template
    - If it doesn't exist, the plugin will create it
+   - Supports standard markdown headings (e.g., `## Tasks`) or callout syntax (e.g., `>[!info]`)
+3. Configure **Task extraction sections to skip** to exclude specific sections from rollover
+   - Add section headings (one per line) that you want to skip
+   - Tasks under these headings won't be moved to today's note
+   - Default: `#### -> Personal tasks`
+   - Use the + button to add new excluded sections, and drag/reorder with arrows
+4. Set **Archive folder name** for where processed notes are moved (default: `archive`)
 
 ### GitHub Integration Setup
 
 The plugin can automatically add GitHub PR information to your daily notes, including:
 
 - PRs where you've been requested as a reviewer
-- New comments on your PRs (since yesterday)
+- Your own open PRs (with activity indicators for PRs updated in the last 24 hours)
+- Your recently merged PRs (automatically checked off)
+- PRs with specific labels you're tracking across monitored repos
 
 #### Setup Steps:
 
@@ -87,18 +97,29 @@ The plugin can automatically add GitHub PR information to your daily notes, incl
    - **GitHub personal access token**: Paste the token you just created
    - **GitHub username**: Enter your GitHub username
    - **Repositories to monitor**: Enter a comma-separated list of repositories you want to track
-     - Format: `owner/repo1, owner/repo2`
-     - Example: `facebook/react, microsoft/vscode`
-   - **GitHub section heading**: Customize where PR info appears (default: `## GitHub PRs`)
+     - Format: `owner/repo1, owner/repo2` or full GitHub URLs
+     - Example: `facebook/react, microsoft/vscode` or `https://github.com/facebook/react`
+   - **GitHub section heading**: Where PR review requests appear (default: `## GitHub PRs`)
+   - **Open PRs section heading**: Where your own open/merged PRs appear (default: `## My Open PRs`)
+   - **Tracked labels**: Comma-separated list of labels to monitor (e.g., `urgent, bug, needs-attention`)
+   - **Labeled PRs section heading**: Where labeled PRs appear (default: `## Labeled PRs`)
 
 #### What Gets Added to Your Daily Note:
 
-The plugin will add checkable task items like:
+The plugin will add task items organized by type:
 
+**Review Requests** (in GitHub PRs section):
 - `- [ ] Review requested: [Add new feature X](https://github.com/owner/repo/pull/123)`
-- `- [ ] 3 new comments on your PR: [Fix bug Y](https://github.com/owner/repo/pull/456)`
 
-These items are inserted at the section heading you specify, making it easy to track your GitHub activity alongside your daily tasks.
+**Your Open PRs** (in My Open PRs section):
+- `- [ ] [Fix bug Y](https://github.com/owner/repo/pull/456)` - no recent activity
+- `- [ ] 🔥 [Implement feature Z](https://github.com/owner/repo/pull/789) *(activity since yesterday)*` - updated in last 24 hours
+- `- [x] ✅ [Update docs](https://github.com/owner/repo/pull/321) *(merged)*` - recently merged (pre-checked!)
+
+**Labeled PRs** (in Labeled PRs section):
+- `- [ ] [Critical bug](https://github.com/owner/repo/pull/111)` - matches your tracked labels
+
+These items are inserted at their respective section headings, making it easy to track your GitHub activity alongside your daily tasks.
 
 ## How it Works
 
@@ -110,9 +131,13 @@ The plugin looks for unchecked items (lines starting with `- [ ]`, `* [ ]`, or `
 
 When enabled, the plugin queries the GitHub API to:
 
-1. Find all open PRs where you've been requested as a reviewer
-2. Check your authored PRs for new comments since yesterday
-3. Add these as task items in your daily note
+1. **Search for review requests**: Finds all open PRs where you've been requested as a reviewer
+2. **Track your open PRs**: Fetches all open PRs from monitored repos authored by you
+   - Checks if they've been updated in the last 24 hours (shows 🔥 indicator if yes)
+3. **Track your merged PRs**: Checks recently closed PRs to find ones you authored that were merged in the last 24 hours (shows ✅ and automatically checks them off)
+4. **Track labeled PRs**: Filters PRs from monitored repos that match your tracked labels (excludes PRs where you're already the author or reviewer)
+
+All PR information is added as task items in their respective sections in your daily note.
 
 ## Supported Daily Note Formats
 
