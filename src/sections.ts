@@ -1,25 +1,32 @@
+import { isCalloutHeader } from "./util";
 import { DailyNoteRolloverSettings } from "./types";
+import { CALLOUT_PREFIX } from "./constants";
 
 export function sectionHasContent(content: string, sectionHeading: string): boolean {
   const lines = content.split("\n");
   let inSection = false;
-
+  console.log(`Checking section ${sectionHeading}`);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.trim() === sectionHeading.trim()) {
       inSection = true;
       continue;
     }
-    if (inSection && line.trim().match(/^#+\s/)) return false;
+    if (inSection && (line.trim().match(/^#+\s/) || isCalloutHeader(line.trim()))) return false;
     if (inSection && line.trim() !== "") return true;
   }
   return false;
 }
 
-export async function extractUncheckedItemsFromSections(
-  content: string,
-  settings: DailyNoteRolloverSettings
-): Promise<string[]> {
+export async function extractUncheckedItemsFromSections({
+  content,
+  settings,
+  calloutPrefix = "",
+}: {
+  content: string;
+  settings: DailyNoteRolloverSettings;
+  calloutPrefix?: string;
+}): Promise<string[]> {
   const lines = content.split("\n");
 
   const unchecked: string[] = [];
@@ -38,7 +45,7 @@ export async function extractUncheckedItemsFromSections(
     }
 
     if (shouldSkip) continue;
-    if (line.trim().match(/^[-*+]\s+\[\s\]/)) unchecked.push(line);
+    if (line.trim().match(/^[-*+]\s+\[\s\]/)) unchecked.push(`${calloutPrefix}${line}`);
   }
 
   return unchecked;

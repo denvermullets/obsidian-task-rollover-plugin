@@ -1,3 +1,4 @@
+import { isCalloutHeader } from "./util";
 import { Plugin, TFile, moment } from "obsidian";
 import DailyNoteRolloverSettingTab from "./settings";
 import { DEFAULT_SETTINGS, DailyNoteRolloverSettings } from "./types";
@@ -14,6 +15,7 @@ import {
   extractUncheckedItemsFromSections,
 } from "./sections";
 import { fetchGitHubPRs } from "./github";
+import { CALLOUT_PREFIX } from "./constants";
 
 export default class DailyNoteRolloverPlugin extends Plugin {
   settings: DailyNoteRolloverSettings;
@@ -82,10 +84,11 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     let shouldArchive = false;
     if (mostRecentNote) {
       const mostRecentContent = await this.app.vault.read(mostRecentNote);
-      const uncheckedItems = await extractUncheckedItemsFromSections(
-        mostRecentContent,
-        this.settings
-      );
+      const uncheckedItems = await extractUncheckedItemsFromSections({
+        content: mostRecentContent,
+        settings: this.settings,
+        calloutPrefix: isCalloutHeader(this.settings.targetSectionHeading) ? CALLOUT_PREFIX : "",
+      });
       if (uncheckedItems.length > 0) {
         todayContent = appendItemsToSection(
           todayContent,
