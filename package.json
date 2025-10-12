@@ -1,13 +1,13 @@
 {
   "name": "obsidian-daily-task-rollover",
-  "version": "0.8.2",
+  "version": "0.8.1",
   "description": "Moves unchecked items from yesterday's daily note to today's daily note",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "postversion": "node scripts/version-bump.mjs && git add manifest.json versions.json",
-    "release-patch": "yarn version --patch && git push ${node scripts/get-version.mjs}",
+    "release-patch": "yarn version --patch && git push && git push origin v$(node scripts/get-version.mjs)",
     "testing": "node scripts/get-version.mjs"
   },
   "keywords": [],
