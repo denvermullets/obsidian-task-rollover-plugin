@@ -9,7 +9,7 @@
     "postversion": "node scripts/version-bump.mjs && git add manifest.json versions.json",
     "release-patch": "yarn version --patch && git push && git push origin v$(node scripts/get-version.mjs)",
     "release-minor": "yarn version --minor && git push && git push origin v$(node scripts/get-version.mjs)",
-    "release-major": "yarn version --major && git push && git push origin v$(node scripts/get-version.mjs)",
+    "release-major": "yarn version --major && git push && git push origin v$(node scripts/get-version.mjs)"
   },
   "keywords": [],
   "author": "",
