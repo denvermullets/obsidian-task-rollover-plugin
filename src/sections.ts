@@ -46,6 +46,8 @@ export async function extractUncheckedItemsFromSections({
 
     if (shouldSkip) continue;
     if (line.trim().match(/^[-*+]\s+\[\s\]/)) unchecked.push(`${calloutPrefix}${line}`);
+    // This line already has a callout prefix, don't add another
+    if (line.trim().match(/^>[-*+]\s+\[\s\]/)) unchecked.push(`${line}`);
   }
 
   return unchecked;
