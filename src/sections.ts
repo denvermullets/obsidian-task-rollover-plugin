@@ -1,3 +1,5 @@
+import { DailyNoteRolloverSettings } from "./types";
+
 export function sectionHasContent(content: string, sectionHeading: string): boolean {
   const lines = content.split("\n");
   let inSection = false;
@@ -14,12 +16,31 @@ export function sectionHasContent(content: string, sectionHeading: string): bool
   return false;
 }
 
-export function extractUncheckedItems(content: string): string[] {
+export async function extractUncheckedItemsFromSections(
+  content: string,
+  settings: DailyNoteRolloverSettings
+): Promise<string[]> {
   const lines = content.split("\n");
+
   const unchecked: string[] = [];
-  for (const line of lines) {
+
+  let shouldSkip = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (settings.skippedTaskExtractionSections.includes(line.trim())) {
+      shouldSkip = true;
+      continue;
+    }
+
+    if (line === "") {
+      shouldSkip = false;
+    }
+
+    if (shouldSkip) continue;
     if (line.trim().match(/^[-*+]\s+\[\s\]/)) unchecked.push(line);
   }
+
   return unchecked;
 }
 
