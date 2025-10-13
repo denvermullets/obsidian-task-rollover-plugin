@@ -77,7 +77,8 @@ export function appendItemsToSection(
   while (
     insertIndex < lines.length &&
     lines[insertIndex].trim() !== "" &&
-    !lines[insertIndex].trim().match(/^#+\s/)
+    !lines[insertIndex].trim().match(/^#+\s/) &&
+    !isCalloutHeader(lines[insertIndex].trim())
   ) {
     insertIndex++;
   }

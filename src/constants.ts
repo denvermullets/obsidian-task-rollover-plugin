@@ -1,1 +1,1 @@
-export const CALLOUT_PREFIX = ">";
+export const CALLOUT_PREFIX = "> ";

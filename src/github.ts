@@ -148,7 +148,7 @@ export async function fetchYourOpenAndMergedPRs(
           pr.merged_at &&
           new Date(pr.merged_at) >= new Date(since)
         ) {
-          openPRs.push(`- [x] ✅ [${pr.title}](${pr.html_url}) *(merged)*`);
+          openPRs.push(`${openCalloutPrefix}- [x] ✅ [${pr.title}](${pr.html_url}) *(merged)*`);
         }
       }
     }
