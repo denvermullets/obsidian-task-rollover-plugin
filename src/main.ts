@@ -16,6 +16,7 @@ import {
 } from "./sections";
 import { fetchGitHubPRs } from "./github";
 import { CALLOUT_PREFIX } from "./constants";
+import { logger } from "./logger";
 
 export default class DailyNoteRolloverPlugin extends Plugin {
   settings: DailyNoteRolloverSettings;
@@ -23,7 +24,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
-    console.log("Loading Daily Note Rollover plugin");
+    logger.info("Loading Daily Note Rollover plugin");
 
     this.addSettingTab(new DailyNoteRolloverSettingTab(this.app, this));
 
@@ -72,7 +73,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
         sectionHasContent(todayContent, this.settings.githubLabeledPRsHeading);
 
       if (hasTaskSection || hasGithubSection || hasOpenPRSection || hasLabeledPRSection) {
-        console.log("Today's note already has content, skipping rollover");
+        logger.warn("Today's note already has content, skipping rollover");
         this.processedNotes.add(todayNote.path);
         return;
       }
@@ -95,13 +96,13 @@ export default class DailyNoteRolloverPlugin extends Plugin {
           uncheckedItems,
           this.settings.targetSectionHeading
         );
-        console.log(
+        logger.info(
           `Moved ${uncheckedItems.length} unchecked items from ${mostRecentNote.name} to today's note`
         );
         shouldArchive = true;
       }
     } else {
-      console.log("No note found for previous day, check archive.");
+      logger.warn("No note found for previous day, check archive.");
     }
 
     if (this.settings.enableGithubIntegration) {
@@ -112,7 +113,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
           reviewItems,
           this.settings.githubSectionHeading
         );
-        console.log(`Added ${reviewItems.length} GitHub PR items to today's note`);
+        logger.info(`Added ${reviewItems.length} GitHub PR items to today's note`);
       }
       if (openPRItems.length > 0) {
         todayContent = appendItemsToSection(
@@ -120,7 +121,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
           openPRItems,
           this.settings.githubOpenPRsHeading
         );
-        console.log(`Added ${openPRItems.length} open PR items to today's note`);
+        logger.info(`Added ${openPRItems.length} open PR items to today's note`);
       }
       if (labeledItems.length > 0) {
         todayContent = appendItemsToSection(
@@ -128,7 +129,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
           labeledItems,
           this.settings.githubLabeledPRsHeading
         );
-        console.log(`Added ${labeledItems.length} labeled PR items to today's note`);
+        logger.info(`Added ${labeledItems.length} labeled PR items to today's note`);
       }
     }
 
@@ -153,10 +154,10 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 
     const newPath = `${archivePath}/${note.name}`;
     await this.app.fileManager.renameFile(note, newPath);
-    console.log(`Archived ${note.name} to ${newPath}`);
+    logger.info(`Archived ${note.name} to ${newPath}`);
   }
 
   onunload() {
-    console.log("Unloading Daily Note Rollover plugin");
+    logger.info("Unloading Daily Note Rollover plugin");
   }
 }

@@ -1,11 +1,11 @@
 import { isCalloutHeader } from "./util";
 import { DailyNoteRolloverSettings } from "./types";
-import { CALLOUT_PREFIX } from "./constants";
+import { logger } from "./logger";
 
 export function sectionHasContent(content: string, sectionHeading: string): boolean {
   const lines = content.split("\n");
   let inSection = false;
-  console.log(`Checking section ${sectionHeading}`);
+  logger.info(`Checking section ${sectionHeading}`);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.trim() === sectionHeading.trim()) {
