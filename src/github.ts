@@ -130,7 +130,7 @@ export async function fetchYourOpenAndMergedPRs(
           );
 
           if (matchingLabels.length > 0) {
-            labeledPRs.push(`${labeledCalloutPrefix}- [ ] [${pr.title}](${pr.html_url})`);
+            labeledPRs.push(`${labeledCalloutPrefix}- [ ] [${repo}] [${pr.title}](${pr.html_url})`);
           }
         }
       }
