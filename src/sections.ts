@@ -13,7 +13,8 @@ export function sectionHasContent(content: string, sectionHeading: string): bool
       continue;
     }
     if (inSection && (line.trim().match(/^#+\s/) || isCalloutHeader(line.trim()))) return false;
-    if (inSection && line.trim() !== "") return true;
+    // Ignore empty callout lines (just ">") when checking for content
+    if (inSection && line.trim() !== "" && line.trim() !== ">") return true;
   }
   return false;
 }
@@ -60,6 +61,7 @@ export function appendItemsToSection(
 ): string {
   const lines = todayContent.split("\n");
   let insertIndex = -1;
+  const isCallout = isCalloutHeader(targetHeading);
 
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].trim() === targetHeading.trim()) {
@@ -74,10 +76,18 @@ export function appendItemsToSection(
     return newContent;
   }
 
+  // For callouts, skip over empty callout lines (just ">") to find the insertion point
+  if (isCallout) {
+    while (insertIndex < lines.length && lines[insertIndex].trim() === ">") {
+      insertIndex++;
+    }
+  }
+
   while (
     insertIndex < lines.length &&
     lines[insertIndex].trim() !== "" &&
-    !lines[insertIndex].trim().match(/^#+\s/)
+    !lines[insertIndex].trim().match(/^#+\s/) &&
+    !isCalloutHeader(lines[insertIndex].trim())
   ) {
     insertIndex++;
   }

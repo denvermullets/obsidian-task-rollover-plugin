@@ -27,4 +27,4 @@ export const arrayMove = <T>(array: T[], fromIndex: number, toIndex: number): vo
   array[toIndex] = temp;
 };
 
-export const isCalloutHeader = (header: string) => header.startsWith(">[!");
+export const isCalloutHeader = (header: string) => header.startsWith(">[!") || header.startsWith("> [!");

@@ -102,7 +102,7 @@ export async function fetchYourOpenAndMergedPRs(
       `https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`,
       settings
     );
-    const trackedCalloutPrefix = isCalloutHeader(settings.githubTrackedLabels)
+    const labeledCalloutPrefix = isCalloutHeader(settings.githubLabeledPRsHeading)
       ? CALLOUT_PREFIX
       : "";
     const openCalloutPrefix = isCalloutHeader(settings.githubOpenPRsHeading) ? CALLOUT_PREFIX : "";
@@ -130,7 +130,7 @@ export async function fetchYourOpenAndMergedPRs(
           );
 
           if (matchingLabels.length > 0) {
-            labeledPRs.push(`${trackedCalloutPrefix}- [ ] [${pr.title}](${pr.html_url})`);
+            labeledPRs.push(`${labeledCalloutPrefix}- [ ] *${repo}* [${pr.title}](${pr.html_url})`);
           }
         }
       }
@@ -148,7 +148,7 @@ export async function fetchYourOpenAndMergedPRs(
           pr.merged_at &&
           new Date(pr.merged_at) >= new Date(since)
         ) {
-          openPRs.push(`- [x] ✅ [${pr.title}](${pr.html_url}) *(merged)*`);
+          openPRs.push(`${openCalloutPrefix}- [x] ✅ [${pr.title}](${pr.html_url}) *(merged)*`);
         }
       }
     }
