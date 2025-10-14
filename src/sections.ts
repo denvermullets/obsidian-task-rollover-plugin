@@ -78,13 +78,14 @@ export async function extractUncheckedItemsFromSections({
     if (shouldSkip) continue;
 
     // Match tasks inside callouts: "> - [ ]" or ">- [ ]" (with or without space after >)
+    // Also supports nested tasks with indentation: ">    - [ ]"
     if (trimmedLine.match(/^>\s*[-*+]\s+\[\s\]/)) {
       // Preserve the original spacing from the source file
       unchecked.push(line);
       logger.info(`Found unchecked task in callout: ${trimmedLine}`);
     }
-    // Match regular tasks: "- [ ]"
-    else if (trimmedLine.match(/^[-*+]\s+\[\s\]/)) {
+    // Match regular tasks: "- [ ]", including nested tasks with leading whitespace
+    else if (trimmedLine.match(/^\s*[-*+]\s+\[\s\]/)) {
       unchecked.push(`${calloutPrefix}${line}`);
       logger.info(`Found unchecked task: ${trimmedLine}`);
     }
