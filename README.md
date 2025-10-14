@@ -7,6 +7,8 @@ An Obsidian plugin that automatically moves unchecked items from yesterday's dai
 Well, I used a plugin that did this and it didn't work so I let Claude Code go nuts with it. I opted to add more integration stuff since I will probably be the only person to ever use this. A common problem I have is notification fatigue, especially with Github, so this should help prioritize at a glance for me.
 
 <img width="864" height="628" alt="Screenshot 2025-10-01 at 10 28 41 PM" src="https://github.com/user-attachments/assets/eadeeee2-24c6-4113-970d-c36eaf5c4691" />
+or
+<img width="1042" height="968" alt="image" src="https://github.com/user-attachments/assets/d67bc2df-48ec-4d41-841a-e802d85fcd99" />
 <img width="1214" height="1104" alt="Screenshot 2025-10-10 at 11 19 39 AM" src="https://github.com/user-attachments/assets/b9e6d110-5de8-4099-aa07-59cf15287dcb" />
 
 ## Features
