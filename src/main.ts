@@ -82,7 +82,6 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     this.processedNotes.add(todayNote.path);
 
     const mostRecentNote = await getMostRecentDailyNote(this.app);
-    let shouldArchive = false;
     if (mostRecentNote) {
       const mostRecentContent = await this.app.vault.read(mostRecentNote);
       const uncheckedItems = await extractUncheckedItemsFromSections({
@@ -99,7 +98,6 @@ export default class DailyNoteRolloverPlugin extends Plugin {
         logger.info(
           `Moved ${uncheckedItems.length} unchecked items from ${mostRecentNote.name} to today's note`
         );
-        shouldArchive = true;
       }
     } else {
       logger.warn("No note found for previous day, check archive.");
@@ -135,7 +133,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 
     await this.app.vault.modify(todayNote, todayContent);
 
-    if (shouldArchive && mostRecentNote) {
+    if (mostRecentNote) {
       await this.archiveNote(mostRecentNote);
     }
   }
