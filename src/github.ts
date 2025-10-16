@@ -122,6 +122,7 @@ export async function fetchYourOpenAndMergedPRs(
         else if (
           trackedLabels.length > 0 &&
           !reviewPRUrls.has(pr.html_url) &&
+          !pr.draft &&
           Array.isArray(pr.labels)
         ) {
           const prLabelNames = pr.labels.map((l: any) => l.name);
