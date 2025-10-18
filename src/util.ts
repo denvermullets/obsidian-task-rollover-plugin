@@ -1,5 +1,6 @@
 import { App } from "obsidian";
 import { InternalPlugin, InternalPluginNameType } from "obsidian-typings";
+import { Section } from "./sections";
 
 interface GetInternalPluginProps<T extends InternalPluginNameType> {
   id: T;
@@ -27,4 +28,26 @@ export const arrayMove = <T>(array: T[], fromIndex: number, toIndex: number): vo
   array[toIndex] = temp;
 };
 
-export const isCalloutHeader = (header: string) => header.startsWith(">[!") || header.startsWith("> [!");
+export const isCalloutHeader = (header: string) =>
+  header.startsWith(">[!") || header.startsWith("> [!");
+
+export const lineHasUncheckedBox = ({ line }: { line: string }): boolean =>
+  !!line.trim().match(/^.*[-*+]\s+\[\s\]/)?.length;
+
+export const lineHasCheckedBox = ({ line }: { line: string }): boolean =>
+  !!line.trim().match(/^.*[-*+]\s+\[x\]/i)?.length;
+
+export const stripLeadingCalloutBracketFromLine = ({ line }: { line: string }): string =>
+  line.replace("/^>?*/", "");
+
+export function stripMarkersFromLine({ line }: { line: string }): string {
+  const trimmed = line.trim();
+
+  // Match and remove the optional '>' prefix, list marker (-, *, +), and checkbox
+  const cleaned = trimmed.replace(/^>?\s*[-*+]\s+\[[x\s]\]\s*/i, "");
+
+  // Preserve the original indentation structure by getting leading whitespace
+  const leadingWhitespace = line.match(/^\s*/)?.[0] || "";
+
+  return leadingWhitespace + cleaned;
+}

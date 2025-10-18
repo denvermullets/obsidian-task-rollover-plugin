@@ -55,7 +55,9 @@ export async function fetchGitHubPRs(settings: DailyNoteRolloverSettings): Promi
       settings
     );
     if (reviewRequests?.items) {
-      const calloutPrefix = isCalloutHeader(settings.githubSectionHeading) ? CALLOUT_PREFIX : "";
+      const calloutPrefix = isCalloutHeader(settings.githubSectionHeading)
+        ? `${CALLOUT_PREFIX} `
+        : "";
       for (const pr of reviewRequests.items) {
         reviewItems.push(`${calloutPrefix}- [ ] Review requested: [${pr.title}](${pr.html_url})`);
         reviewPRUrls.add(pr.html_url);
@@ -103,9 +105,11 @@ export async function fetchYourOpenAndMergedPRs(
       settings
     );
     const labeledCalloutPrefix = isCalloutHeader(settings.githubLabeledPRsHeading)
-      ? CALLOUT_PREFIX
+      ? `${CALLOUT_PREFIX} `
       : "";
-    const openCalloutPrefix = isCalloutHeader(settings.githubOpenPRsHeading) ? CALLOUT_PREFIX : "";
+    const openCalloutPrefix = isCalloutHeader(settings.githubOpenPRsHeading)
+      ? `${CALLOUT_PREFIX} `
+      : "";
 
     if (Array.isArray(allOpenPRs)) {
       for (const pr of allOpenPRs) {
