@@ -57,7 +57,10 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 
   async rolloverUncheckedItems() {
     const todayNote = await getTodayNote(this.app);
-    if (!todayNote) return;
+    if (!todayNote) {
+      logger.error("No note found for today.");
+      return;
+    }
     let todaysSections = await getSections({ note: todayNote, app: this.app });
 
     const mostRecentNote = await getMostRecentDailyNote(this.app);
