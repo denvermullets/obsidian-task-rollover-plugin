@@ -37,7 +37,7 @@ export async function getSections({ note, app }: { note: TFile; app: App }): Pro
     const filteredContent = lines
       .slice(startLine + 1, endLine + 1)
       .filter((line) => !EMPTY_LINE_MARKERS.includes(line.trim()));
-    const content = lines.slice(startLine + 1, endLine + 1);
+    const content = lines.slice(startLine, endLine + 1);
     const header = lines.slice(startLine, startLine + 1).join("");
 
     const uncheckedTasks: string[] = [];
