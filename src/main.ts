@@ -1,4 +1,3 @@
-import { isCalloutHeader } from "./util";
 import { Plugin, TFile, moment } from "obsidian";
 import DailyNoteRolloverSettingTab from "./settings";
 import { DEFAULT_SETTINGS, DailyNoteRolloverSettings } from "./types";
@@ -16,7 +15,6 @@ import {
   convertSectionsToContent,
 } from "./sections";
 import { fetchGitHubPRs } from "./github";
-import { CALLOUT_PREFIX } from "./constants";
 import { logger } from "./logger";
 
 export default class DailyNoteRolloverPlugin extends Plugin {
