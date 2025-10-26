@@ -1,161 +1,150 @@
-import { isCalloutHeader } from "./util";
-import { DailyNoteRolloverSettings } from "./types";
+import { lineHasCheckedBox, lineHasUncheckedBox, stripMarkersFromLine } from "./util";
 import { logger } from "./logger";
+import type { Pos, App, TFile } from "obsidian";
+import { CALLOUT_PREFIX, CHECKBOX_STRING, EMPTY_LINE_MARKERS } from "./constants";
 
-export function sectionHasContent(content: string, sectionHeading: string): boolean {
-  const lines = content.split("\n");
-  let inSection = false;
-  logger.info(`Checking section ${sectionHeading}`);
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.trim() === sectionHeading.trim()) {
-      inSection = true;
-      continue;
-    }
-    if (inSection && (line.trim().match(/^#+\s/) || isCalloutHeader(line.trim()))) return false;
-    // Ignore empty callout lines (just ">") when checking for content
-    if (inSection && line.trim() !== "" && line.trim() !== ">") return true;
+export type Section = {
+  type: string;
+  position: Pos;
+  content: string[];
+  filteredContent: string[];
+  header: string;
+  checkedTasks: string[];
+  uncheckedTasks: string[];
+};
+
+export async function getSections({ note, app }: { note: TFile; app: App }): Promise<Section[]> {
+  await app.metadataCache.computeFileMetadataAsync(note);
+
+  const metadata = app.metadataCache.getFileCache(note);
+  if (!metadata) {
+    logger.error(`No metadata found for note: ${note}`);
+    return [];
   }
-  return false;
+  const sections = metadata.sections;
+
+  if (!sections) {
+    logger.info(`No sections found for the note ${note}`);
+    return [];
+  }
+
+  const content = await app.vault.read(note);
+  const lines = content.split("\n");
+
+  const extractedSections = sections?.map((section) => {
+    const startLine = section.position.start.line;
+    const endLine = section.position.end.line;
+    const filteredContent = lines
+      .slice(startLine + 1, endLine + 1)
+      .filter((line) => !EMPTY_LINE_MARKERS.includes(line.trim()));
+    const content = lines.slice(startLine, endLine + 1);
+    const header = lines.slice(startLine, startLine + 1).join("");
+
+    const uncheckedTasks: string[] = [];
+    const checkedTasks: string[] = [];
+
+    for (const line of content) {
+      const hasUncheckedBox = lineHasUncheckedBox({ line });
+      const hasCheckedBox = lineHasCheckedBox({ line });
+
+      if (hasUncheckedBox) {
+        uncheckedTasks.push(stripMarkersFromLine({ line }));
+      }
+      if (hasCheckedBox) {
+        checkedTasks.push(stripMarkersFromLine({ line }));
+      }
+    }
+
+    return {
+      header,
+      checkedTasks,
+      uncheckedTasks,
+      type: section.type,
+      position: section.position,
+      filteredContent,
+      content,
+    };
+  });
+
+  return extractedSections;
 }
 
 export async function extractUncheckedItemsFromSections({
-  content,
-  settings,
-  calloutPrefix = "",
+  sections,
+  skippedSections,
 }: {
-  content: string;
-  settings: DailyNoteRolloverSettings;
-  calloutPrefix?: string;
+  sections: Section[];
+  skippedSections: string[];
 }): Promise<string[]> {
-  const lines = content.split("\n");
-
   const unchecked: string[] = [];
+  for (const section of sections) {
+    if (skippedSections.includes(section.header)) continue;
+    unchecked.push(...section.uncheckedTasks);
+  }
 
-  let shouldSkip = false;
-  let inCallout = false;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmedLine = line.trim();
+  return unchecked.map((line) => `${CHECKBOX_STRING} ${line}`);
+}
 
-    // Check if we're entering a skipped section
-    if (settings.skippedTaskExtractionSections.includes(trimmedLine)) {
-      shouldSkip = true;
-      inCallout = false;
-      logger.info(`Skipping section: ${trimmedLine}`);
-      continue;
-    }
+export function appendItemsToSection({
+  sections,
+  items,
+  targetHeading,
+}: {
+  sections: Section[];
+  items: string[];
+  targetHeading: string;
+}): Section[] {
+  const sectionIndex = sections.findIndex((section) => section.header === targetHeading);
 
-    // Check if we're starting a new callout block
-    if (isCalloutHeader(trimmedLine)) {
-      inCallout = true;
-      // Only skip if this specific callout header is in the skip list
-      if (settings.skippedTaskExtractionSections.includes(trimmedLine)) {
-        shouldSkip = true;
-        logger.info(`Skipping callout: ${trimmedLine}`);
-      } else {
-        shouldSkip = false;
+  if (sectionIndex === -1) {
+    return [
+      ...sections,
+      {
+        type: targetHeading[0] === CALLOUT_PREFIX ? "callout" : "other",
+        position: {
+          start: {
+            line: 0,
+            col: 0,
+            offset: 0,
+          },
+          end: {
+            line: 0,
+            col: 0,
+            offset: 0,
+          },
+        },
+        content: items,
+        filteredContent: items,
+        header: targetHeading,
+        uncheckedTasks: items,
+        checkedTasks: [],
+      },
+    ];
+  }
+
+  return sections.map((section, index) =>
+    index === sectionIndex
+      ? {
+          ...section,
+          content: [...section.content, ...items],
+          filteredContent: [...section.filteredContent, ...items],
+          uncheckedTasks: [...section.uncheckedTasks, ...items],
+        }
+      : section
+  );
+}
+
+export const convertSectionsToContent = ({ sections }: { sections: Section[] }): string => {
+  let content = "\n";
+  for (const section of sections) {
+    content += `${section.header}\n`;
+    for (const line of section.filteredContent) {
+      if (section.type === "callout" && line[0] !== CALLOUT_PREFIX) {
+        content += `${CALLOUT_PREFIX} `;
       }
-      continue;
+      content += `${line}\n`;
     }
-
-    // Check if we're exiting a callout block or skipped section
-    // Callouts end when we hit a non-callout line that doesn't start with ">"
-    // Regular sections end at empty lines or new headers
-    if (trimmedLine === "") {
-      shouldSkip = false;
-      inCallout = false;
-    } else if (inCallout && !trimmedLine.startsWith(">")) {
-      // We've left the callout block
-      inCallout = false;
-      shouldSkip = false;
-    } else if (trimmedLine.match(/^#+\s/)) {
-      // New heading section
-      shouldSkip = false;
-      inCallout = false;
-    }
-
-    if (shouldSkip) continue;
-
-    // Match tasks inside callouts: "> - [ ]" or ">- [ ]" (with or without space after >)
-    // Also supports nested tasks with indentation: ">    - [ ]"
-    if (trimmedLine.match(/^>\s*[-*+]\s+\[\s\]/)) {
-      // Preserve the original spacing from the source file
-      unchecked.push(line);
-      logger.info(`Found unchecked task in callout: ${trimmedLine}`);
-    }
-    // Match regular tasks: "- [ ]", including nested tasks with leading whitespace
-    else if (trimmedLine.match(/^\s*[-*+]\s+\[\s\]/)) {
-      unchecked.push(`${calloutPrefix}${line}`);
-      logger.info(`Found unchecked task: ${trimmedLine}`);
-    }
+    content += "\n";
   }
-
-  return unchecked;
-}
-
-export function appendItemsToSection(
-  todayContent: string,
-  items: string[],
-  targetHeading: string
-): string {
-  if (items.length === 0) {
-    logger.info("No items to append");
-    return todayContent;
-  }
-
-  const lines = todayContent.split("\n");
-  let insertIndex = -1;
-  const isCallout = isCalloutHeader(targetHeading);
-
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim() === targetHeading.trim()) {
-      insertIndex = i + 1;
-      break;
-    }
-  }
-
-  if (insertIndex === -1) {
-    logger.info(`Section "${targetHeading}" not found, creating new section at end of file`);
-    let newContent = todayContent.endsWith("\n") ? todayContent : todayContent + "\n";
-    newContent += `\n${targetHeading}\n` + items.join("\n") + "\n";
-    logger.info(`Successfully created section and inserted ${items.length} items`);
-    return newContent;
-  }
-
-  logger.info(`Found section "${targetHeading}" at line ${insertIndex}, inserting ${items.length} items`);
-
-  // For callouts, skip over empty callout lines (just ">") to find the insertion point
-  if (isCallout) {
-    const startIndex = insertIndex;
-    while (insertIndex < lines.length && lines[insertIndex].trim() === ">") {
-      insertIndex++;
-    }
-    if (insertIndex !== startIndex) {
-      logger.info(`Skipped ${insertIndex - startIndex} empty callout lines`);
-    }
-  }
-
-  const beforeSkip = insertIndex;
-  while (
-    insertIndex < lines.length &&
-    lines[insertIndex].trim() !== "" &&
-    !lines[insertIndex].trim().match(/^#+\s/) &&
-    !isCalloutHeader(lines[insertIndex].trim())
-  ) {
-    insertIndex++;
-  }
-
-  if (insertIndex !== beforeSkip) {
-    logger.info(`Skipped ${insertIndex - beforeSkip} existing content lines, inserting at line ${insertIndex}`);
-  }
-
-  try {
-    lines.splice(insertIndex, 0, ...items);
-    logger.info(`Successfully inserted ${items.length} items at line ${insertIndex}`);
-    return lines.join("\n");
-  } catch (error) {
-    logger.error(`Failed to insert items at line ${insertIndex}: ${error}`);
-    return todayContent;
-  }
-}
+  return content;
+};

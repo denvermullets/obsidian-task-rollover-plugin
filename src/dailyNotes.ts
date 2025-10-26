@@ -30,7 +30,7 @@ export function isDailyNote(app: App, file: TFile): boolean {
   return file.name === today || file.name === yesterday;
 }
 
-export async function getDailyNote(app: App, date: moment.Moment): Promise<TFile | null> {
+async function getDailyNote(app: App, date: moment.Moment): Promise<TFile | null> {
   const dailyNotesPlugin = getInternalPlugin({ id: "daily-notes", app: this.app });
 
   let format = "YYYY-MM-DD";
