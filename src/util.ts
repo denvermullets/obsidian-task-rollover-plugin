@@ -37,9 +37,6 @@ export const lineHasUncheckedBox = ({ line }: { line: string }): boolean =>
 export const lineHasCheckedBox = ({ line }: { line: string }): boolean =>
   !!line.trim().match(/^.*[-*+]\s+\[x\]/i)?.length;
 
-export const stripLeadingCalloutBracketFromLine = ({ line }: { line: string }): string =>
-  line.replace("/^>?*/", "");
-
 export function stripMarkersFromLine({ line }: { line: string }): string {
   const trimmed = line.trim();
 

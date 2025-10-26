@@ -69,13 +69,6 @@ export async function getSections({ note, app }: { note: TFile; app: App }): Pro
   return extractedSections;
 }
 
-// Left in case we decide to check for section content again.
-// Shouldn't be needed as `create` should only be ran on a new template
-// appending to content that exists on a new template is likely valid.
-export function sectionHasContent({ section }: { section: Section }): boolean {
-  return section.content.length > 0;
-}
-
 export async function extractUncheckedItemsFromSections({
   sections,
   skippedSections,

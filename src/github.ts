@@ -81,7 +81,7 @@ export async function fetchGitHubPRs(settings: DailyNoteRolloverSettings): Promi
   }
 }
 
-export async function fetchYourOpenAndMergedPRs(
+async function fetchYourOpenAndMergedPRs(
   repos: string[],
   since: string,
   settings: DailyNoteRolloverSettings,

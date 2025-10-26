@@ -2,7 +2,7 @@
  * Logger utility with configurable log levels and environment detection
  */
 
-export enum LogLevel {
+enum LogLevel {
   DEBUG = 0,
   INFO = 1,
   WARN = 2,
@@ -102,8 +102,3 @@ class Logger {
 }
 
 export const logger = Logger.getInstance();
-
-export const debug = (...args: unknown[]) => logger.debug(...args);
-export const info = (...args: unknown[]) => logger.info(...args);
-export const warn = (...args: unknown[]) => logger.warn(...args);
-export const error = (...args: unknown[]) => logger.error(...args);
