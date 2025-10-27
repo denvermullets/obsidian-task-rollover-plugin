@@ -1,6 +1,6 @@
 {
   "name": "obsidian-daily-task-rollover",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Moves unchecked items from yesterday's daily note to today's daily note",
   "main": "main.js",
   "scripts": {
