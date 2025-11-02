@@ -6,10 +6,12 @@ export interface DailyNoteRolloverSettings {
   githubToken: string;
   githubUsername: string;
   githubRepos: string;
+  githubRepositories: string[];
   githubSectionHeading: string;
   githubOpenPRsHeading: string;
   githubLabeledPRsHeading: string;
   githubTrackedLabels: string;
+  githubLabelsToTrack: string[];
   enableGithubIntegration: boolean;
   skippedTaskExtractionSections: string[];
 }
@@ -19,11 +21,15 @@ export const DEFAULT_SETTINGS: DailyNoteRolloverSettings = {
   archiveFolderName: "archive",
   githubToken: "",
   githubUsername: "",
+  // Deprecated
   githubRepos: "",
+  githubRepositories: [],
   githubSectionHeading: "## GitHub PRs",
   githubOpenPRsHeading: "## My Open PRs",
   githubLabeledPRsHeading: "## Labeled PRs",
+  // Deprecated
   githubTrackedLabels: "",
+  githubLabelsToTrack: [],
   enableGithubIntegration: false,
   skippedTaskExtractionSections: ["#### -> Personal tasks"],
 };
