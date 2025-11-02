@@ -6,6 +6,7 @@ export interface DailyNoteRolloverSettings {
   githubToken: string;
   githubUsername: string;
   githubRepos: string;
+  githubRepositories: string[];
   githubSectionHeading: string;
   githubOpenPRsHeading: string;
   githubLabeledPRsHeading: string;
@@ -20,6 +21,7 @@ export const DEFAULT_SETTINGS: DailyNoteRolloverSettings = {
   githubToken: "",
   githubUsername: "",
   githubRepos: "",
+  githubRepositories: [],
   githubSectionHeading: "## GitHub PRs",
   githubOpenPRsHeading: "## My Open PRs",
   githubLabeledPRsHeading: "## Labeled PRs",

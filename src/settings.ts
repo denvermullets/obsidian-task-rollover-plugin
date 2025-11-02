@@ -1,6 +1,7 @@
 import { App, ButtonComponent, PluginSettingTab, Setting } from "obsidian";
 import type DailyNoteRolloverPlugin from "./main";
 import { arrayMove } from "./util";
+import { sortableListField } from "./settingsComponents";
 
 export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
   plugin: DailyNoteRolloverPlugin;
@@ -8,6 +9,17 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: DailyNoteRolloverPlugin) {
     super(app, plugin);
     this.plugin = plugin;
+
+    // Migrate old repos comma separated list into new array.
+
+    if (!!this.plugin.settings.githubRepos) {
+      const reposToMigrate = this.plugin.settings.githubRepos.split(",");
+      this.plugin.settings.githubRepositories.push(...reposToMigrate);
+      this.plugin.saveSettings();
+
+      this.plugin.settings.githubRepos = "";
+      console.log(`Migrated ${reposToMigrate.length} to new settings style`);
+    }
   }
 
   display(): void {
@@ -16,59 +28,14 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
 
     containerEl.createEl("h2", { text: "Task Rollover Settings" });
 
-    new Setting(this.containerEl)
-      .setName("Task extraction sections to skip")
-      .setDesc("Allows setting a list of sections that should be ignored during auto rollover")
-      .addButton((button: ButtonComponent) => {
-        button
-          .setTooltip("Add excluded section")
-          .setButtonText("+")
-          .setCta()
-          .onClick(async () => {
-            this.plugin.settings.skippedTaskExtractionSections.push("");
-            await this.plugin.saveSettings();
-            this.display();
-          });
-      });
-
-    this.plugin.settings.skippedTaskExtractionSections.forEach((excludedSection, index) => {
-      const s = new Setting(containerEl)
-        .addSearch((cb) => {
-          cb.setPlaceholder("Section")
-            .setValue(excludedSection)
-            .onChange(async (newFolder) => {
-              this.plugin.settings.skippedTaskExtractionSections[index] = newFolder;
-              await this.plugin.saveSettings();
-            });
-        })
-        .addExtraButton((cb) => {
-          cb.setIcon("up-chevron-glyph")
-            .setTooltip("Move up")
-            .onClick(async () => {
-              arrayMove(this.plugin.settings.skippedTaskExtractionSections, index, index - 1);
-              await this.plugin.saveSettings();
-              this.display();
-            });
-        })
-        .addExtraButton((cb) => {
-          cb.setIcon("down-chevron-glyph")
-            .setTooltip("Move down")
-            .onClick(async () => {
-              arrayMove(this.plugin.settings.skippedTaskExtractionSections, index, index + 1);
-              await this.plugin.saveSettings();
-              this.display();
-            });
-        })
-        .addExtraButton((cb) => {
-          cb.setIcon("cross")
-            .setTooltip("Delete")
-            .onClick(async () => {
-              this.plugin.settings.skippedTaskExtractionSections.splice(index, 1);
-              await this.plugin.saveSettings();
-              this.display();
-            });
-        });
-      s.infoEl.remove();
+    sortableListField({
+      plugin: this.plugin,
+      settingsContainer: containerEl,
+      display: () => this.display(),
+      settings: this.plugin.settings.skippedTaskExtractionSections,
+      name: "Task extraction sections to skip",
+      description: "Allows setting a list of sections that should be ignored during auto rollover",
+      tooltip: "Add excluded section",
     });
 
     new Setting(containerEl)
@@ -138,18 +105,15 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
           })
       );
 
-      new Setting(containerEl)
-        .setName("Repositories to monitor")
-        .setDesc('Comma-separated (e.g., "owner/repo1, owner/repo2" or URLs)')
-        .addTextArea((text) =>
-          text
-            .setPlaceholder("owner/repo1, owner/repo2")
-            .setValue(this.plugin.settings.githubRepos)
-            .onChange(async (value) => {
-              this.plugin.settings.githubRepos = value;
-              await this.plugin.saveSettings();
-            })
-        );
+      sortableListField({
+        plugin: this.plugin,
+        settingsContainer: containerEl,
+        display: () => this.display(),
+        settings: this.plugin.settings.githubRepositories,
+        name: "Repositories to monitor",
+        description: "",
+        tooltip: "Github repositories that will be included in queries.",
+      });
 
       new Setting(containerEl).setName("GitHub section heading").addText((text) =>
         text
