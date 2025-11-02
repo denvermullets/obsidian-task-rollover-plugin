@@ -1,6 +1,5 @@
-import { App, ButtonComponent, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
 import type DailyNoteRolloverPlugin from "./main";
-import { arrayMove } from "./util";
 import { sortableListField } from "./settingsComponents";
 
 export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
@@ -9,32 +8,6 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: DailyNoteRolloverPlugin) {
     super(app, plugin);
     this.plugin = plugin;
-
-    // Migrate old repos comma separated list into new array.
-    if (!!this.plugin.settings.githubRepos) {
-      const reposToMigrate = this.plugin.settings.githubRepos
-        .split(",")
-        .map((repo) => repo.trim())
-        .filter(Boolean);
-      this.plugin.settings.githubRepositories.push(...reposToMigrate);
-      this.plugin.settings.githubRepos = "";
-
-      this.plugin.saveSettings();
-      console.log(`Migrated ${reposToMigrate.length} to new settings style`);
-    }
-
-    // Migrate old tags if they exist
-    if (!!this.plugin.settings.githubTrackedLabels) {
-      const labelsToMigrate = this.plugin.settings.githubTrackedLabels
-        .split(",")
-        .map((label) => label.trim())
-        .filter(Boolean);
-      this.plugin.settings.githubLabelsToTrack.push(...labelsToMigrate);
-      this.plugin.settings.githubTrackedLabels = "";
-
-      this.plugin.saveSettings();
-      console.log(`Migrated ${labelsToMigrate.length} to new settings style`);
-    }
   }
 
   display(): void {
