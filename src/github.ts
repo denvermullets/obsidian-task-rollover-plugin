@@ -41,7 +41,7 @@ export async function fetchGitHubPRs(settings: DailyNoteRolloverSettings): Promi
   const reviewItems: string[] = [];
   const openPRItems: string[] = [];
   const labeledItems: string[] = [];
-  const repos = parseRepos(settings.githubRepos);
+  const repos = settings.githubRepositories.filter(Boolean);
   const sinceIso = moment().subtract(1, "days").toISOString();
 
   try {
@@ -90,12 +90,7 @@ async function fetchYourOpenAndMergedPRs(
   const openPRs: string[] = [];
   const labeledPRs: string[] = [];
 
-  const trackedLabels = settings.githubTrackedLabels
-    ? settings.githubTrackedLabels
-        .split(",")
-        .map((l) => l.trim())
-        .filter(Boolean)
-    : [];
+  const trackedLabels = settings.githubLabelsToTrack;
 
   for (const repo of repos) {
     if (!repo.includes("/")) continue;

@@ -11,14 +11,29 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
     this.plugin = plugin;
 
     // Migrate old repos comma separated list into new array.
-
     if (!!this.plugin.settings.githubRepos) {
-      const reposToMigrate = this.plugin.settings.githubRepos.split(",");
+      const reposToMigrate = this.plugin.settings.githubRepos
+        .split(",")
+        .map((repo) => repo.trim())
+        .filter(Boolean);
       this.plugin.settings.githubRepositories.push(...reposToMigrate);
-      this.plugin.saveSettings();
-
       this.plugin.settings.githubRepos = "";
+
+      this.plugin.saveSettings();
       console.log(`Migrated ${reposToMigrate.length} to new settings style`);
+    }
+
+    // Migrate old tags if they exist
+    if (!!this.plugin.settings.githubTrackedLabels) {
+      const labelsToMigrate = this.plugin.settings.githubTrackedLabels
+        .split(",")
+        .map((label) => label.trim())
+        .filter(Boolean);
+      this.plugin.settings.githubLabelsToTrack.push(...labelsToMigrate);
+      this.plugin.settings.githubTrackedLabels = "";
+
+      this.plugin.saveSettings();
+      console.log(`Migrated ${labelsToMigrate.length} to new settings style`);
     }
   }
 
@@ -115,6 +130,16 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
         tooltip: "Github repositories that will be included in queries.",
       });
 
+      sortableListField({
+        plugin: this.plugin,
+        settingsContainer: containerEl,
+        display: () => this.display(),
+        settings: this.plugin.settings.githubLabelsToTrack,
+        name: "Tracked labels",
+        description: 'labels to monitor (e.g., "urgent, bug, needs-attention")',
+        tooltip: "",
+      });
+
       new Setting(containerEl).setName("GitHub section heading").addText((text) =>
         text
           .setPlaceholder("## GitHub PRs")
@@ -134,19 +159,6 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
-
-      new Setting(containerEl)
-        .setName("Tracked labels")
-        .setDesc('Comma-separated list of labels to monitor (e.g., "urgent, bug, needs-attention")')
-        .addTextArea((text) =>
-          text
-            .setPlaceholder("urgent, bug, needs-attention")
-            .setValue(this.plugin.settings.githubTrackedLabels)
-            .onChange(async (value) => {
-              this.plugin.settings.githubTrackedLabels = value;
-              await this.plugin.saveSettings();
-            })
-        );
 
       new Setting(containerEl)
         .setName("Labeled PRs section heading")
