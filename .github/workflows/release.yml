@@ -31,7 +31,10 @@ jobs:
           tag="${GITHUB_REF#refs/tags/}"
           cp manifest.json build/manifest.json
           cd build
+          mkdir -p obsidian-task-rollover-plugin
+          cp main.js manifest.json obsidian-task-rollover-plugin/
+          zip -r obsidian-task-rollover-plugin.zip obsidian-task-rollover-plugin
           gh release create "$tag" \
             --title="$tag" \
             --draft \
-            main.js manifest.json
+            main.js manifest.json obsidian-task-rollover-plugin.zip
