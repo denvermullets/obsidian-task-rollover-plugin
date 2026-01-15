@@ -54,6 +54,32 @@ export default class DailyNoteRolloverPlugin extends Plugin {
 
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+    // Migrate old repos comma separated list into new array.
+    if (!!this.settings.githubRepos) {
+      const reposToMigrate = this.settings.githubRepos
+        .split(",")
+        .map((repo) => repo.trim())
+        .filter(Boolean);
+      this.settings.githubRepositories.push(...reposToMigrate);
+      this.settings.githubRepos = "";
+
+      this.saveSettings();
+      console.log(`Migrated ${reposToMigrate.length} to new settings style`);
+    }
+
+    // Migrate old tags if they exist
+    if (!!this.settings.githubTrackedLabels) {
+      const labelsToMigrate = this.settings.githubTrackedLabels
+        .split(",")
+        .map((label) => label.trim())
+        .filter(Boolean);
+      this.settings.githubLabelsToTrack.push(...labelsToMigrate);
+      this.settings.githubTrackedLabels = "";
+
+      this.saveSettings();
+      console.log(`Migrated ${labelsToMigrate.length} to new settings style`);
+    }
   }
 
   async saveSettings() {
