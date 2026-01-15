@@ -14,7 +14,8 @@ import {
   getSections,
   convertSectionsToContent,
 } from "./sections";
-import { fetchGitHubPRs } from "./github";
+import { fetchGitHubPRs, fetchGitHubRecap } from "./github";
+import { RecapModal } from "./recapModal";
 import { logger } from "./logger";
 
 export default class DailyNoteRolloverPlugin extends Plugin {
@@ -30,6 +31,12 @@ export default class DailyNoteRolloverPlugin extends Plugin {
       id: "rollover-unchecked-items",
       name: "Move unchecked items from yesterday to today",
       callback: () => this.rolloverUncheckedItems(),
+    });
+
+    this.addCommand({
+      id: "generate-github-recap",
+      name: "Generate GitHub Recap",
+      callback: () => this.openRecapModal(),
     });
 
     this.registerEvent(
@@ -137,6 +144,66 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     const newPath = `${archivePath}/${note.name}`;
     await this.app.fileManager.renameFile(note, newPath);
     logger.info(`Archived ${note.name} to ${newPath}`);
+  }
+
+  openRecapModal() {
+    if (!this.settings.enableGithubIntegration) {
+      logger.error("GitHub integration is not enabled. Please enable it in settings.");
+      return;
+    }
+
+    new RecapModal(this.app, async (selection) => {
+      await this.generateGitHubRecap(selection.month, selection.year);
+    }).open();
+  }
+
+  async generateGitHubRecap(month: number, year: number) {
+    const stats = await fetchGitHubRecap(this.settings, month, year);
+
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const monthName = months[month];
+    const generatedDate = moment().format("YYYY-MM-DD");
+
+    let content = `# GitHub Recap - ${monthName} ${year}\n\n`;
+    content += `## Summary\n`;
+    content += `- **PRs Opened:** ${stats.prsOpened}\n`;
+    content += `- **PRs Merged:** ${stats.prsMerged}\n`;
+    content += `- **PRs Reviewed:** ${stats.prsReviewed}\n`;
+    content += `- **Review Comments:** ${stats.reviewComments}\n`;
+    content += `- **Issues Opened:** ${stats.issuesOpened}\n`;
+    content += `- **Issues Closed:** ${stats.issuesClosed}\n`;
+
+    if (stats.mostActiveRepo) {
+      content += `\n## Most Active Repository\n`;
+      content += `\`${stats.mostActiveRepo}\` - ${stats.mostActiveRepoCount} contributions\n`;
+    }
+
+    content += `\n---\n*Generated on ${generatedDate}*\n`;
+
+    const filePath = this.settings.githubRecapFilePath || "GitHub Recap.md";
+    const existingFile = this.app.vault.getAbstractFileByPath(filePath);
+
+    if (existingFile instanceof TFile) {
+      await this.app.vault.modify(existingFile, content);
+      logger.info(`Updated GitHub recap at ${filePath}`);
+    } else {
+      await this.app.vault.create(filePath, content);
+      logger.info(`Created GitHub recap at ${filePath}`);
+    }
   }
 
   onunload() {

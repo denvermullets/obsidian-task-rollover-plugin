@@ -2,8 +2,41 @@ import { isCalloutHeader } from "./util";
 import { moment } from "obsidian";
 import type { DailyNoteRolloverSettings } from "./types";
 import { CALLOUT_PREFIX } from "./constants";
+import { logger } from "./logger";
 
-async function githubApiRequest(url: string, settings: DailyNoteRolloverSettings): Promise<any> {
+export interface GitHubRecapStats {
+  prsOpened: number;
+  prsMerged: number;
+  prsReviewed: number;
+  reviewComments: number;
+  issuesOpened: number;
+  issuesClosed: number;
+  mostActiveRepo: string | null;
+  mostActiveRepoCount: number;
+}
+
+interface GitHubSearchResponse {
+  total_count: number;
+  items: Array<{
+    html_url: string;
+    title: string;
+    repository_url?: string;
+    user?: { login: string };
+    assignees?: Array<{ login: string }>;
+  }>;
+}
+
+interface GitHubPR {
+  html_url: string;
+  title: string;
+  draft: boolean;
+  updated_at: string;
+  merged_at: string | null;
+  user?: { login: string };
+  labels: Array<{ name: string }>;
+}
+
+async function githubApiRequest<T>(url: string, settings: DailyNoteRolloverSettings): Promise<T | null> {
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${settings.githubToken}`,
@@ -15,7 +48,7 @@ async function githubApiRequest(url: string, settings: DailyNoteRolloverSettings
     console.error(`GitHub API error: ${response.status} ${response.statusText}`);
     return null;
   }
-  return await response.json();
+  return (await response.json()) as T;
 }
 
 function parseRepos(input: string): string[] {
@@ -23,7 +56,7 @@ function parseRepos(input: string): string[] {
     .split(",")
     .map((r) => {
       r = r.trim();
-      const match = r.match(/github\.com\/([^\/]+\/[^\/]+)/);
+      const match = r.match(/github\.com\/([^/]+\/[^/]+)/);
       return match ? match[1] : r;
     })
     .filter(Boolean);
@@ -48,7 +81,7 @@ export async function fetchGitHubPRs(settings: DailyNoteRolloverSettings): Promi
     // Review requests
     const reviewPRUrls = new Set<string>();
     const searchQuery = `type:pr state:open review-requested:${settings.githubUsername}`;
-    const reviewRequests = await githubApiRequest(
+    const reviewRequests = await githubApiRequest<GitHubSearchResponse>(
       `https://api.github.com/search/issues?q=${encodeURIComponent(
         searchQuery
       )}&sort=updated&order=desc`,
@@ -100,7 +133,7 @@ async function fetchYourOpenAndMergedPRs(
   for (const repo of repos) {
     if (!repo.includes("/")) continue;
 
-    const allOpenPRs = await githubApiRequest(
+    const allOpenPRs = await githubApiRequest<GitHubPR[]>(
       `https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`,
       settings
     );
@@ -129,7 +162,7 @@ async function fetchYourOpenAndMergedPRs(
           !pr.draft &&
           Array.isArray(pr.labels)
         ) {
-          const prLabelNames = pr.labels.map((l: any) => l.name);
+          const prLabelNames = pr.labels.map((l) => l.name);
           const matchingLabels = prLabelNames.filter((label: string) =>
             trackedLabels.includes(label)
           );
@@ -141,7 +174,7 @@ async function fetchYourOpenAndMergedPRs(
       }
     }
 
-    const closedPRs = await githubApiRequest(
+    const closedPRs = await githubApiRequest<GitHubPR[]>(
       `https://api.github.com/repos/${repo}/pulls?state=closed&per_page=100&sort=updated&direction=desc`,
       settings
     );
@@ -160,4 +193,166 @@ async function fetchYourOpenAndMergedPRs(
   }
 
   return { openPRs, labeledPRs };
+}
+
+function getDateRange(month: number, year: number): { start: string; end: string } {
+  const startDate = new Date(year, month, 1);
+  const endDate = new Date(year, month + 1, 0);
+
+  const start = startDate.toISOString().split("T")[0];
+  const end = endDate.toISOString().split("T")[0];
+
+  return { start, end };
+}
+
+function buildRepoFilter(settings: DailyNoteRolloverSettings): string {
+  if (settings.githubRecapAllRepos) {
+    return "";
+  }
+
+  const repos = parseRepos(settings.githubRepos);
+  if (repos.length === 0) {
+    return "";
+  }
+
+  return repos.map((repo) => `repo:${repo}`).join(" ");
+}
+
+export async function fetchGitHubRecap(
+  settings: DailyNoteRolloverSettings,
+  month: number,
+  year: number
+): Promise<GitHubRecapStats> {
+  const stats: GitHubRecapStats = {
+    prsOpened: 0,
+    prsMerged: 0,
+    prsReviewed: 0,
+    reviewComments: 0,
+    issuesOpened: 0,
+    issuesClosed: 0,
+    mostActiveRepo: null,
+    mostActiveRepoCount: 0,
+  };
+
+  if (!settings.githubToken || !settings.githubUsername) {
+    logger.error("GitHub token or username not configured");
+    return stats;
+  }
+
+  const { start, end } = getDateRange(month, year);
+  const dateRange = `${start}..${end}`;
+  const repoFilter = buildRepoFilter(settings);
+  const repoContributions: Record<string, number> = {};
+
+  const trackRepo = (repoFullName: string) => {
+    repoContributions[repoFullName] = (repoContributions[repoFullName] || 0) + 1;
+  };
+
+  try {
+    // PRs opened by user
+    const prsOpenedQuery =
+      `type:pr author:${settings.githubUsername} created:${dateRange} ${repoFilter}`.trim();
+    const prsOpenedResult = await githubApiRequest<GitHubSearchResponse>(
+      `https://api.github.com/search/issues?q=${encodeURIComponent(prsOpenedQuery)}&per_page=100`,
+      settings
+    );
+    if (prsOpenedResult?.items) {
+      stats.prsOpened = prsOpenedResult.total_count;
+      for (const pr of prsOpenedResult.items) {
+        const repoMatch = pr.repository_url?.match(/repos\/(.+)$/);
+        if (repoMatch) trackRepo(repoMatch[1]);
+      }
+    }
+
+    // PRs merged by user
+    const prsMergedQuery =
+      `type:pr author:${settings.githubUsername} merged:${dateRange} ${repoFilter}`.trim();
+    const prsMergedResult = await githubApiRequest<GitHubSearchResponse>(
+      `https://api.github.com/search/issues?q=${encodeURIComponent(prsMergedQuery)}&per_page=100`,
+      settings
+    );
+    if (prsMergedResult?.items) {
+      stats.prsMerged = prsMergedResult.total_count;
+    }
+
+    // PRs reviewed by user (excluding own PRs)
+    const prsReviewedQuery =
+      `type:pr reviewed-by:${settings.githubUsername} -author:${settings.githubUsername} created:${dateRange} ${repoFilter}`.trim();
+    const prsReviewedResult = await githubApiRequest<GitHubSearchResponse>(
+      `https://api.github.com/search/issues?q=${encodeURIComponent(prsReviewedQuery)}&per_page=100`,
+      settings
+    );
+    if (prsReviewedResult?.items) {
+      stats.prsReviewed = prsReviewedResult.total_count;
+      for (const pr of prsReviewedResult.items) {
+        const repoMatch = pr.repository_url?.match(/repos\/(.+)$/);
+        if (repoMatch) trackRepo(repoMatch[1]);
+      }
+    }
+
+    // Review comments by user
+    const reviewCommentsQuery =
+      `type:pr commenter:${settings.githubUsername} created:${dateRange} ${repoFilter}`.trim();
+    const reviewCommentsResult = await githubApiRequest<GitHubSearchResponse>(
+      `https://api.github.com/search/issues?q=${encodeURIComponent(
+        reviewCommentsQuery
+      )}&per_page=100`,
+      settings
+    );
+    if (reviewCommentsResult?.items) {
+      stats.reviewComments = reviewCommentsResult.total_count;
+    }
+
+    // Issues opened by user
+    const issuesOpenedQuery =
+      `type:issue author:${settings.githubUsername} created:${dateRange} ${repoFilter}`.trim();
+    const issuesOpenedResult = await githubApiRequest<GitHubSearchResponse>(
+      `https://api.github.com/search/issues?q=${encodeURIComponent(
+        issuesOpenedQuery
+      )}&per_page=100`,
+      settings
+    );
+    if (issuesOpenedResult?.items) {
+      stats.issuesOpened = issuesOpenedResult.total_count;
+      for (const issue of issuesOpenedResult.items) {
+        const repoMatch = issue.repository_url?.match(/repos\/(.+)$/);
+        if (repoMatch) trackRepo(repoMatch[1]);
+      }
+    }
+
+    // Issues closed by user (issues where user was the one who closed it)
+    const issuesClosedQuery =
+      `type:issue closed:${dateRange} involves:${settings.githubUsername} ${repoFilter}`.trim();
+    const issuesClosedResult = await githubApiRequest<GitHubSearchResponse>(
+      `https://api.github.com/search/issues?q=${encodeURIComponent(
+        issuesClosedQuery
+      )}&per_page=100`,
+      settings
+    );
+    if (issuesClosedResult?.items) {
+      // Filter to issues actually authored or assigned to the user that were closed
+      const userClosedIssues = issuesClosedResult.items.filter(
+        (issue) =>
+          issue.user?.login === settings.githubUsername ||
+          issue.assignees?.some((a) => a.login === settings.githubUsername)
+      );
+      stats.issuesClosed = userClosedIssues.length;
+    }
+
+    // Find most active repo
+    let maxCount = 0;
+    let mostActive: string | null = null;
+    for (const [repo, count] of Object.entries(repoContributions)) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostActive = repo;
+      }
+    }
+    stats.mostActiveRepo = mostActive;
+    stats.mostActiveRepoCount = maxCount;
+  } catch (e) {
+    logger.error("Error fetching GitHub recap:", e);
+  }
+
+  return stats;
 }
