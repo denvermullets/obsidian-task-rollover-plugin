@@ -196,6 +196,31 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
               await this.plugin.saveSettings();
             })
         );
+
+      containerEl.createEl("h3", { text: "GitHub Recap" });
+
+      new Setting(containerEl)
+        .setName("Recap file path")
+        .setDesc("Where to save the GitHub recap file")
+        .addText((text) =>
+          text
+            .setPlaceholder("GitHub Recap.md")
+            .setValue(this.plugin.settings.githubRecapFilePath)
+            .onChange(async (value) => {
+              this.plugin.settings.githubRecapFilePath = value;
+              await this.plugin.saveSettings();
+            })
+        );
+
+      new Setting(containerEl)
+        .setName("Recap: Include all repositories")
+        .setDesc("When enabled, includes all GitHub activity. When disabled, only includes activity from the repositories configured above.")
+        .addToggle((toggle) =>
+          toggle.setValue(this.plugin.settings.githubRecapAllRepos).onChange(async (value) => {
+            this.plugin.settings.githubRecapAllRepos = value;
+            await this.plugin.saveSettings();
+          })
+        );
     }
   }
 }

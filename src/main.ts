@@ -1,4 +1,4 @@
-import { Plugin, TFile, moment } from "obsidian";
+import { Plugin, TFile, moment, Notice } from "obsidian";
 import DailyNoteRolloverSettingTab from "./settings";
 import { DEFAULT_SETTINGS, DailyNoteRolloverSettings } from "./types";
 import {
@@ -14,7 +14,8 @@ import {
   getSections,
   convertSectionsToContent,
 } from "./sections";
-import { fetchGitHubPRs } from "./github";
+import { fetchGitHubPRs, fetchGitHubRecap, fetchGitHubYearlyRecap } from "./github";
+import { RecapModal } from "./recapModal";
 import { logger } from "./logger";
 
 export default class DailyNoteRolloverPlugin extends Plugin {
@@ -30,6 +31,12 @@ export default class DailyNoteRolloverPlugin extends Plugin {
       id: "rollover-unchecked-items",
       name: "Move unchecked items from yesterday to today",
       callback: () => this.rolloverUncheckedItems(),
+    });
+
+    this.addCommand({
+      id: "generate-github-recap",
+      name: "Generate GitHub Recap",
+      callback: () => this.openRecapModal(),
     });
 
     this.registerEvent(
@@ -137,6 +144,157 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     const newPath = `${archivePath}/${note.name}`;
     await this.app.fileManager.renameFile(note, newPath);
     logger.info(`Archived ${note.name} to ${newPath}`);
+  }
+
+  openRecapModal() {
+    if (!this.settings.enableGithubIntegration) {
+      logger.error("GitHub integration is not enabled. Please enable it in settings.");
+      return;
+    }
+
+    new RecapModal(this.app, async (selection) => {
+      if (selection.type === "yearly") {
+        await this.generateYearlyGitHubRecap(selection.year);
+      } else {
+        await this.generateGitHubRecap(selection.month, selection.year);
+      }
+    }).open();
+  }
+
+  async generateGitHubRecap(month: number, year: number) {
+    const loadingNotice = new Notice("Generating GitHub recap... This may take a few minutes.", 0);
+
+    const stats = await fetchGitHubRecap(this.settings, month, year);
+    loadingNotice.hide();
+
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const monthName = months[month];
+    const generatedDate = moment().format("YYYY-MM-DD");
+
+    let content = `# GitHub Recap - ${monthName} ${year}\n\n`;
+    content += `## Summary\n`;
+    content += `- **PRs Opened:** ${stats.prsOpened}\n`;
+    content += `- **PRs Merged:** ${stats.prsMerged}\n`;
+    content += `- **PRs Reviewed:** ${stats.prsReviewed}\n`;
+    content += `- **Review Comments:** ${stats.reviewComments}\n`;
+    content += `- **Issues Opened:** ${stats.issuesOpened}\n`;
+    content += `- **Issues Closed:** ${stats.issuesClosed}\n`;
+
+    if (stats.topRepos.length > 0) {
+      content += `\n## Top Repositories\n`;
+      for (const { repo, count } of stats.topRepos) {
+        content += `- \`${repo}\` - ${count} contributions\n`;
+      }
+    }
+
+    content += `\n---\n*Generated on ${generatedDate}*\n`;
+
+    const filePath = this.settings.githubRecapFilePath || "GitHub Recap.md";
+    const existingFile = this.app.vault.getAbstractFileByPath(filePath);
+
+    if (existingFile instanceof TFile) {
+      await this.app.vault.modify(existingFile, content);
+      logger.info(`Updated GitHub recap at ${filePath}`);
+    } else {
+      await this.app.vault.create(filePath, content);
+      logger.info(`Created GitHub recap at ${filePath}`);
+    }
+
+    new Notice("GitHub recap generated!");
+  }
+
+  async generateYearlyGitHubRecap(year: number) {
+    const loadingNotice = new Notice("Generating yearly GitHub recap... This may take several minutes.", 0);
+
+    const recap = await fetchGitHubYearlyRecap(this.settings, year);
+    loadingNotice.hide();
+
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const generatedDate = moment().format("YYYY-MM-DD");
+
+    let content = `# GitHub Recap - ${year}\n\n`;
+
+    // Yearly totals
+    content += `## Yearly Totals\n`;
+    content += `- **PRs Opened:** ${recap.totals.prsOpened}\n`;
+    content += `- **PRs Merged:** ${recap.totals.prsMerged}\n`;
+    content += `- **PRs Reviewed:** ${recap.totals.prsReviewed}\n`;
+    content += `- **Review Comments:** ${recap.totals.reviewComments}\n`;
+    content += `- **Issues Opened:** ${recap.totals.issuesOpened}\n`;
+    content += `- **Issues Closed:** ${recap.totals.issuesClosed}\n`;
+
+    if (recap.totals.topRepos.length > 0) {
+      content += `\n## Top Repositories\n`;
+      for (const { repo, count } of recap.totals.topRepos) {
+        content += `- \`${repo}\` - ${count} contributions\n`;
+      }
+    }
+
+    // Monthly breakdown table
+    content += `\n## Monthly Breakdown\n\n`;
+    content += `| Month | PRs Opened | PRs Merged | PRs Reviewed | Review Comments | Issues Opened | Issues Closed |\n`;
+    content += `|-------|------------|------------|--------------|-----------------|---------------|---------------|\n`;
+
+    for (const { month, stats } of recap.monthly) {
+      content += `| ${months[month]} | ${stats.prsOpened} | ${stats.prsMerged} | ${stats.prsReviewed} | ${stats.reviewComments} | ${stats.issuesOpened} | ${stats.issuesClosed} |\n`;
+    }
+
+    // PR list grouped by month using collapsible callouts
+    if (recap.totals.prList.length > 0) {
+      content += `\n## Pull Requests Submitted\n\n`;
+      for (const { month, stats } of recap.monthly) {
+        if (stats.prList.length > 0) {
+          content += `> [!note]- ${months[month]} (${stats.prList.length} PRs)\n`;
+          for (const pr of stats.prList) {
+            content += `> - [${pr.title}](${pr.url}) - \`${pr.repo}\`\n`;
+          }
+          content += `\n`;
+        }
+      }
+    }
+
+    content += `---\n*Generated on ${generatedDate}*\n`;
+
+    const filePath = this.settings.githubRecapFilePath || "GitHub Recap.md";
+    const existingFile = this.app.vault.getAbstractFileByPath(filePath);
+
+    if (existingFile instanceof TFile) {
+      await this.app.vault.modify(existingFile, content);
+      logger.info(`Updated GitHub yearly recap at ${filePath}`);
+    } else {
+      await this.app.vault.create(filePath, content);
+      logger.info(`Created GitHub yearly recap at ${filePath}`);
+    }
+
+    new Notice("GitHub yearly recap generated!");
   }
 
   onunload() {

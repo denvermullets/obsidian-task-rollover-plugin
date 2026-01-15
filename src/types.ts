@@ -12,6 +12,8 @@ export interface DailyNoteRolloverSettings {
   githubTrackedLabels: string;
   enableGithubIntegration: boolean;
   skippedTaskExtractionSections: string[];
+  githubRecapFilePath: string;
+  githubRecapAllRepos: boolean;
 }
 
 export const DEFAULT_SETTINGS: DailyNoteRolloverSettings = {
@@ -26,6 +28,8 @@ export const DEFAULT_SETTINGS: DailyNoteRolloverSettings = {
   githubTrackedLabels: "",
   enableGithubIntegration: false,
   skippedTaskExtractionSections: ["#### -> Personal tasks"],
+  githubRecapFilePath: "GitHub Recap.md",
+  githubRecapAllRepos: true,
 };
 
 export type PluginWithSettings<T> = Plugin & { settings: T };
