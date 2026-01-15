@@ -263,7 +263,21 @@ export default class DailyNoteRolloverPlugin extends Plugin {
       content += `| ${months[month]} | ${stats.prsOpened} | ${stats.prsMerged} | ${stats.prsReviewed} | ${stats.reviewComments} | ${stats.issuesOpened} | ${stats.issuesClosed} |\n`;
     }
 
-    content += `\n---\n*Generated on ${generatedDate}*\n`;
+    // PR list grouped by month
+    if (recap.totals.prList.length > 0) {
+      content += `\n## Pull Requests Submitted\n\n`;
+      for (const { month, stats } of recap.monthly) {
+        if (stats.prList.length > 0) {
+          content += `### ${months[month]}\n`;
+          for (const pr of stats.prList) {
+            content += `- [${pr.title}](${pr.url}) - \`${pr.repo}\`\n`;
+          }
+          content += `\n`;
+        }
+      }
+    }
+
+    content += `---\n*Generated on ${generatedDate}*\n`;
 
     const filePath = this.settings.githubRecapFilePath || "GitHub Recap.md";
     const existingFile = this.app.vault.getAbstractFileByPath(filePath);

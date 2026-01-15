@@ -4,6 +4,12 @@ import type { DailyNoteRolloverSettings } from "./types";
 import { CALLOUT_PREFIX } from "./constants";
 import { logger } from "./logger";
 
+export interface PRInfo {
+  title: string;
+  url: string;
+  repo: string;
+}
+
 export interface GitHubRecapStats {
   prsOpened: number;
   prsMerged: number;
@@ -13,6 +19,7 @@ export interface GitHubRecapStats {
   issuesClosed: number;
   mostActiveRepo: string | null;
   mostActiveRepoCount: number;
+  prList: PRInfo[];
 }
 
 interface GitHubSearchResponse {
@@ -282,6 +289,7 @@ export async function fetchGitHubRecap(
     issuesClosed: 0,
     mostActiveRepo: null,
     mostActiveRepoCount: 0,
+    prList: [],
   };
 
   if (!settings.githubToken || !settings.githubUsername) {
@@ -310,7 +318,13 @@ export async function fetchGitHubRecap(
       stats.prsOpened = prsOpenedResult.total_count;
       for (const pr of prsOpenedResult.items) {
         const repoMatch = pr.repository_url?.match(/repos\/(.+)$/);
+        const repoName = repoMatch ? repoMatch[1] : "unknown";
         if (repoMatch) trackRepo(repoMatch[1]);
+        stats.prList.push({
+          title: pr.title,
+          url: pr.html_url,
+          repo: repoName,
+        });
       }
     }
 
@@ -430,6 +444,7 @@ export async function fetchGitHubYearlyRecap(
     issuesClosed: 0,
     mostActiveRepo: null,
     mostActiveRepoCount: 0,
+    prList: [],
   };
 
   const repoContributions: Record<string, number> = {};
@@ -444,6 +459,7 @@ export async function fetchGitHubYearlyRecap(
     totals.reviewComments += stats.reviewComments;
     totals.issuesOpened += stats.issuesOpened;
     totals.issuesClosed += stats.issuesClosed;
+    totals.prList.push(...stats.prList);
 
     if (stats.mostActiveRepo) {
       repoContributions[stats.mostActiveRepo] =
