@@ -194,9 +194,11 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     content += `- **Issues Opened:** ${stats.issuesOpened}\n`;
     content += `- **Issues Closed:** ${stats.issuesClosed}\n`;
 
-    if (stats.mostActiveRepo) {
-      content += `\n## Most Active Repository\n`;
-      content += `\`${stats.mostActiveRepo}\` - ${stats.mostActiveRepoCount} contributions\n`;
+    if (stats.topRepos.length > 0) {
+      content += `\n## Top Repositories\n`;
+      for (const { repo, count } of stats.topRepos) {
+        content += `- \`${repo}\` - ${count} contributions\n`;
+      }
     }
 
     content += `\n---\n*Generated on ${generatedDate}*\n`;
@@ -249,9 +251,11 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     content += `- **Issues Opened:** ${recap.totals.issuesOpened}\n`;
     content += `- **Issues Closed:** ${recap.totals.issuesClosed}\n`;
 
-    if (recap.totals.mostActiveRepo) {
-      content += `\n## Most Active Repository\n`;
-      content += `\`${recap.totals.mostActiveRepo}\` - ${recap.totals.mostActiveRepoCount} contributions\n`;
+    if (recap.totals.topRepos.length > 0) {
+      content += `\n## Top Repositories\n`;
+      for (const { repo, count } of recap.totals.topRepos) {
+        content += `- \`${repo}\` - ${count} contributions\n`;
+      }
     }
 
     // Monthly breakdown table
@@ -263,14 +267,14 @@ export default class DailyNoteRolloverPlugin extends Plugin {
       content += `| ${months[month]} | ${stats.prsOpened} | ${stats.prsMerged} | ${stats.prsReviewed} | ${stats.reviewComments} | ${stats.issuesOpened} | ${stats.issuesClosed} |\n`;
     }
 
-    // PR list grouped by month
+    // PR list grouped by month using collapsible callouts
     if (recap.totals.prList.length > 0) {
       content += `\n## Pull Requests Submitted\n\n`;
       for (const { month, stats } of recap.monthly) {
         if (stats.prList.length > 0) {
-          content += `### ${months[month]}\n`;
+          content += `> [!note]- ${months[month]} (${stats.prList.length} PRs)\n`;
           for (const pr of stats.prList) {
-            content += `- [${pr.title}](${pr.url}) - \`${pr.repo}\`\n`;
+            content += `> - [${pr.title}](${pr.url}) - \`${pr.repo}\`\n`;
           }
           content += `\n`;
         }

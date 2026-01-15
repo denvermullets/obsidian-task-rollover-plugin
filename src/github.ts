@@ -10,6 +10,11 @@ export interface PRInfo {
   repo: string;
 }
 
+export interface RepoContribution {
+  repo: string;
+  count: number;
+}
+
 export interface GitHubRecapStats {
   prsOpened: number;
   prsMerged: number;
@@ -17,8 +22,7 @@ export interface GitHubRecapStats {
   reviewComments: number;
   issuesOpened: number;
   issuesClosed: number;
-  mostActiveRepo: string | null;
-  mostActiveRepoCount: number;
+  topRepos: RepoContribution[];
   prList: PRInfo[];
 }
 
@@ -287,8 +291,7 @@ export async function fetchGitHubRecap(
     reviewComments: 0,
     issuesOpened: 0,
     issuesClosed: 0,
-    mostActiveRepo: null,
-    mostActiveRepoCount: 0,
+    topRepos: [],
     prList: [],
   };
 
@@ -403,17 +406,11 @@ export async function fetchGitHubRecap(
       stats.issuesClosed = userClosedIssues.length;
     }
 
-    // Find most active repo
-    let maxCount = 0;
-    let mostActive: string | null = null;
-    for (const [repo, count] of Object.entries(repoContributions)) {
-      if (count > maxCount) {
-        maxCount = count;
-        mostActive = repo;
-      }
-    }
-    stats.mostActiveRepo = mostActive;
-    stats.mostActiveRepoCount = maxCount;
+    // Find top 5 repos by contribution count
+    stats.topRepos = Object.entries(repoContributions)
+      .map(([repo, count]) => ({ repo, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
   } catch (e) {
     logger.error("Error fetching GitHub recap:", e);
   }
@@ -442,8 +439,7 @@ export async function fetchGitHubYearlyRecap(
     reviewComments: 0,
     issuesOpened: 0,
     issuesClosed: 0,
-    mostActiveRepo: null,
-    mostActiveRepoCount: 0,
+    topRepos: [],
     prList: [],
   };
 
@@ -461,23 +457,17 @@ export async function fetchGitHubYearlyRecap(
     totals.issuesClosed += stats.issuesClosed;
     totals.prList.push(...stats.prList);
 
-    if (stats.mostActiveRepo) {
-      repoContributions[stats.mostActiveRepo] =
-        (repoContributions[stats.mostActiveRepo] || 0) + stats.mostActiveRepoCount;
+    // Aggregate repo contributions from each month
+    for (const { repo, count } of stats.topRepos) {
+      repoContributions[repo] = (repoContributions[repo] || 0) + count;
     }
   }
 
-  // Find overall most active repo
-  let maxCount = 0;
-  let mostActive: string | null = null;
-  for (const [repo, count] of Object.entries(repoContributions)) {
-    if (count > maxCount) {
-      maxCount = count;
-      mostActive = repo;
-    }
-  }
-  totals.mostActiveRepo = mostActive;
-  totals.mostActiveRepoCount = maxCount;
+  // Find top 5 repos overall
+  totals.topRepos = Object.entries(repoContributions)
+    .map(([repo, count]) => ({ repo, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
 
   return { year, totals, monthly };
 }

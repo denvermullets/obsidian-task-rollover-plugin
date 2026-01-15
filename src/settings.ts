@@ -213,8 +213,8 @@ export default class DailyNoteRolloverSettingTab extends PluginSettingTab {
         );
 
       new Setting(containerEl)
-        .setName("Include all repositories")
-        .setDesc("When disabled, only includes activity from configured repositories above")
+        .setName("Recap: Include all repositories")
+        .setDesc("When enabled, includes all GitHub activity. When disabled, only includes activity from the repositories configured above.")
         .addToggle((toggle) =>
           toggle.setValue(this.plugin.settings.githubRecapAllRepos).onChange(async (value) => {
             this.plugin.settings.githubRecapAllRepos = value;
