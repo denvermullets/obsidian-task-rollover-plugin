@@ -5,7 +5,8 @@
 An Obsidian plugin that automatically moves unchecked items from yesterday's daily note to today's, with optional GitHub integration for tracking PRs and generating activity recaps.
 
 <img width="943" height="987" alt="Screenshot 2026-01-15 at 9 38 35 AM" src="https://github.com/user-attachments/assets/abc68d2b-dbbd-40a5-b624-5d6627e0c762" />
-<img width="959" height="1092" alt="Screenshot 2026-01-15 at 9 14 08 AM" src="https://github.com/user-attachments/assets/b51d1896-1921-4e1b-8180-ed9c4ddd143f" />
+<img width="982" height="1124" alt="image" src="https://github.com/user-attachments/assets/5354e103-b455-49f9-b5d0-83000c091f17" />
+
 
 
 ## Features
