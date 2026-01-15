@@ -36,7 +36,22 @@ interface GitHubPR {
   labels: Array<{ name: string }>;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Track last request time to respect rate limits
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL_MS = 2100; // ~28 requests/min, under the 30/min secondary limit
+
 async function githubApiRequest<T>(url: string, settings: DailyNoteRolloverSettings): Promise<T | null> {
+  // Rate limiting: ensure minimum interval between requests
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL_MS) {
+    await sleep(MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest);
+  }
+  lastRequestTime = Date.now();
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${settings.githubToken}`,
@@ -44,6 +59,29 @@ async function githubApiRequest<T>(url: string, settings: DailyNoteRolloverSetti
       "X-GitHub-Api-Version": "2022-11-28",
     },
   });
+
+  // Handle rate limiting
+  if (response.status === 403 || response.status === 429) {
+    const retryAfter = response.headers.get("Retry-After");
+    const rateLimitReset = response.headers.get("X-RateLimit-Reset");
+
+    if (retryAfter) {
+      const waitTime = parseInt(retryAfter) * 1000;
+      logger.info(`Rate limited, waiting ${retryAfter} seconds...`);
+      await sleep(waitTime);
+      return githubApiRequest<T>(url, settings); // Retry
+    } else if (rateLimitReset) {
+      const resetTime = parseInt(rateLimitReset) * 1000;
+      const waitTime = Math.max(0, resetTime - Date.now()) + 1000;
+      logger.info(`Rate limited, waiting until reset (${Math.ceil(waitTime / 1000)}s)...`);
+      await sleep(waitTime);
+      return githubApiRequest<T>(url, settings); // Retry
+    }
+
+    console.error(`GitHub API rate limit error: ${response.status}`);
+    return null;
+  }
+
   if (!response.ok) {
     console.error(`GitHub API error: ${response.status} ${response.statusText}`);
     return null;
@@ -355,4 +393,63 @@ export async function fetchGitHubRecap(
   }
 
   return stats;
+}
+
+export interface GitHubYearlyRecap {
+  year: number;
+  totals: GitHubRecapStats;
+  monthly: Array<{
+    month: number;
+    stats: GitHubRecapStats;
+  }>;
+}
+
+export async function fetchGitHubYearlyRecap(
+  settings: DailyNoteRolloverSettings,
+  year: number
+): Promise<GitHubYearlyRecap> {
+  const monthly: Array<{ month: number; stats: GitHubRecapStats }> = [];
+  const totals: GitHubRecapStats = {
+    prsOpened: 0,
+    prsMerged: 0,
+    prsReviewed: 0,
+    reviewComments: 0,
+    issuesOpened: 0,
+    issuesClosed: 0,
+    mostActiveRepo: null,
+    mostActiveRepoCount: 0,
+  };
+
+  const repoContributions: Record<string, number> = {};
+
+  for (let month = 0; month < 12; month++) {
+    const stats = await fetchGitHubRecap(settings, month, year);
+    monthly.push({ month, stats });
+
+    totals.prsOpened += stats.prsOpened;
+    totals.prsMerged += stats.prsMerged;
+    totals.prsReviewed += stats.prsReviewed;
+    totals.reviewComments += stats.reviewComments;
+    totals.issuesOpened += stats.issuesOpened;
+    totals.issuesClosed += stats.issuesClosed;
+
+    if (stats.mostActiveRepo) {
+      repoContributions[stats.mostActiveRepo] =
+        (repoContributions[stats.mostActiveRepo] || 0) + stats.mostActiveRepoCount;
+    }
+  }
+
+  // Find overall most active repo
+  let maxCount = 0;
+  let mostActive: string | null = null;
+  for (const [repo, count] of Object.entries(repoContributions)) {
+    if (count > maxCount) {
+      maxCount = count;
+      mostActive = repo;
+    }
+  }
+  totals.mostActiveRepo = mostActive;
+  totals.mostActiveRepoCount = maxCount;
+
+  return { year, totals, monthly };
 }

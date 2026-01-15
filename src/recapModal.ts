@@ -1,14 +1,19 @@
 import { App, Modal, Setting } from "obsidian";
 
+export type RecapType = "monthly" | "yearly";
+
 export interface RecapSelection {
+  type: RecapType;
   month: number;
   year: number;
 }
 
 export class RecapModal extends Modal {
+  private recapType: RecapType = "monthly";
   private month: number;
   private year: number;
   private onSubmit: (selection: RecapSelection) => void;
+  private monthSetting: Setting | null = null;
 
   constructor(app: App, onSubmit: (selection: RecapSelection) => void) {
     super(app);
@@ -25,6 +30,22 @@ export class RecapModal extends Modal {
 
     contentEl.createEl("h2", { text: "Generate GitHub Recap" });
 
+    const infoEl = contentEl.createEl("p", {
+      text: "Monthly recaps take ~15 seconds. Yearly recaps take ~3 minutes due to GitHub API rate limits.",
+      cls: "setting-item-description",
+    });
+    infoEl.style.marginBottom = "1em";
+
+    new Setting(contentEl).setName("Recap type").addDropdown((dropdown) => {
+      dropdown.addOption("monthly", "Monthly");
+      dropdown.addOption("yearly", "Yearly");
+      dropdown.setValue(this.recapType);
+      dropdown.onChange((value) => {
+        this.recapType = value as RecapType;
+        this.updateMonthVisibility();
+      });
+    });
+
     const months = [
       "January",
       "February",
@@ -40,7 +61,7 @@ export class RecapModal extends Modal {
       "December",
     ];
 
-    new Setting(contentEl).setName("Month").addDropdown((dropdown) => {
+    this.monthSetting = new Setting(contentEl).setName("Month").addDropdown((dropdown) => {
       months.forEach((month, index) => {
         dropdown.addOption(index.toString(), month);
       });
@@ -72,9 +93,15 @@ export class RecapModal extends Modal {
         .setCta()
         .onClick(() => {
           this.close();
-          this.onSubmit({ month: this.month, year: this.year });
+          this.onSubmit({ type: this.recapType, month: this.month, year: this.year });
         })
     );
+  }
+
+  private updateMonthVisibility() {
+    if (this.monthSetting) {
+      this.monthSetting.settingEl.style.display = this.recapType === "monthly" ? "" : "none";
+    }
   }
 
   onClose() {
