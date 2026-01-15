@@ -1,206 +1,85 @@
 # Daily Note Rollover Plugin
 
-An Obsidian plugin that automatically moves unchecked items from yesterday's daily note to today's daily note, and optionally integrates with GitHub to track PR reviews and comments.
+An Obsidian plugin that automatically moves unchecked items from yesterday's daily note to today's, with optional GitHub integration for tracking PRs and generating activity recaps.
 
-## Why?
-
-Well, I used a plugin that did this and it didn't work so I let Claude Code go nuts with it. I opted to add more integration stuff since I will probably be the only person to ever use this. A common problem I have is notification fatigue, especially with Github, so this should help prioritize at a glance for me.
-
-<img width="864" height="628" alt="Screenshot 2025-10-01 at 10 28 41 PM" src="https://github.com/user-attachments/assets/eadeeee2-24c6-4113-970d-c36eaf5c4691" />
-or
-<img width="1042" height="968" alt="image" src="https://github.com/user-attachments/assets/d67bc2df-48ec-4d41-841a-e802d85fcd99" />
-<img width="1214" height="1104" alt="Screenshot 2025-10-10 at 11 19 39 AM" src="https://github.com/user-attachments/assets/b9e6d110-5de8-4099-aa07-59cf15287dcb" />
+<img width="864" height="628" alt="Screenshot" src="https://github.com/user-attachments/assets/eadeeee2-24c6-4113-970d-c36eaf5c4691" />
 
 ## Features
 
-- Automatically moves unchecked checkbox items from yesterday's note to today's note
-- Runs on app load and when creating a new daily note
-- Manual command available: "Move unchecked items from yesterday to today"
-- Supports multiple daily note formats (YYYY-MM-DD, DD-MM-YYYY, etc.)
-- Supports Obsidian callout syntax for section headings (e.g., `>[!info]`)
-- Configurable section skipping - exclude specific sections from automatic rollover
-- Moves previous notes to an 'archive' folder (customizable)
-- **GitHub Integration**: Track PR review requests, your own open/merged PRs with activity indicators, and labeled PRs from monitored repos
-
-## How it Works
-
-### Task Rollover
-
-The plugin looks for unchecked items (lines starting with `- [ ]`, `* [ ]`, or `+ [ ]`) in yesterday's daily note and inserts them into today's note at your specified section heading.
-
-### GitHub Integration
-
-When enabled, the plugin queries the GitHub API to:
-
-1. **Search for review requests**: Finds all open PRs where you've been requested as a reviewer
-2. **Track your open PRs**: Fetches all open PRs from monitored repos authored by you
-   - Checks if they've been updated in the last 24 hours (shows 🔥 indicator if yes)
-3. **Track your merged PRs**: Checks recently closed PRs to find ones you authored that were merged in the last 24 hours (shows ✅ and automatically checks them off)
-4. **Track labeled PRs**: Filters PRs from monitored repos that match your tracked labels (excludes PRs where you're already the author or reviewer)
-
-All PR information is added as task items in their respective sections in your daily note.
+- **Task Rollover**: Automatically moves unchecked items from yesterday's note to today's
+- **GitHub PR Tracking**: Track review requests, your open/merged PRs, and labeled PRs
+- **GitHub Recap**: Generate monthly or yearly summaries of your GitHub activity
+- Supports multiple daily note formats and Obsidian callout syntax
+- Configurable section skipping and archive folder
 
 ## Installation
 
-### Manual Installation
-
 1. Download `main.js` and `manifest.json` from the latest release
-2. Create a folder in your vault's `.obsidian/plugins/` directory called `daily-task-rollover`
-3. Copy the downloaded files into that folder
-4. Reload Obsidian
-5. Enable the plugin in Settings → Community Plugins
-
+2. Create `.obsidian/plugins/daily-task-rollover/` in your vault
+3. Copy the files into that folder and enable the plugin
 
 ## Configuration
 
-### Task Rollover Settings
+### Task Rollover
 
-1. Go to Settings → Daily Note Rollover
-2. Configure the **Target section heading** where unchecked tasks should be inserted (default: `## Tasks`)
-   - This heading should exist in your daily note template
-   - If it doesn't exist, the plugin will create it
-   - Supports standard markdown headings (e.g., `## Tasks`) or callout syntax (e.g., `>[!info]`)
-3. Configure **Task extraction sections to skip** to exclude specific sections from rollover
-   - Add section headings (one per line) that you want to skip
-   - Tasks under these headings won't be moved to today's note
-   - Default: `#### -> Personal tasks`
-   - Use the + button to add new excluded sections, and drag/reorder with arrows
-4. Set **Archive folder name** for where processed notes are moved (default: `archive`)
+- **Target section heading**: Where unchecked tasks are inserted (default: `## Tasks`)
+- **Sections to skip**: Exclude specific sections from rollover
+- **Archive folder**: Where processed notes are moved (default: `archive`)
 
-### GitHub Integration Setup
+### GitHub Integration
 
-The plugin can automatically add GitHub PR information to your daily notes, including:
+1. Enable GitHub integration in settings
+2. Create a [Personal Access Token](https://github.com/settings/tokens) with `repo` scope
+3. Configure:
+   - **GitHub token & username**
+   - **Repositories to monitor**: Comma-separated list (e.g., `owner/repo1, owner/repo2`)
+   - **Section headings**: Where PRs appear in your daily note
+   - **Tracked labels**: Labels to monitor across repos (optional)
 
-- PRs where you've been requested as a reviewer
-- Your own open PRs (with activity indicators for PRs updated in the last 24 hours)
-- Your recently merged PRs (automatically checked off)
-- PRs with specific labels you're tracking across monitored repos
+### GitHub Recap
 
-#### Setup Steps:
+Generate a summary of your GitHub activity with the command: **"Generate GitHub Recap"**
 
-1. **Enable GitHub Integration**
+Options:
 
-   - Go to Settings → Daily Note Rollover → GitHub Integration
-   - Toggle on "Enable GitHub integration"
+- **Monthly or Yearly**: Choose the time period
+- **All repos or configured repos only**: Toggle in settings
 
-2. **Create a GitHub Personal Access Token**
+The recap includes:
 
-   - Visit [https://github.com/settings/tokens](https://github.com/settings/tokens)
-   - Click "Generate new token (classic)"
-   - Give it a descriptive name (e.g., "Obsidian Daily Notes")
-   - Select the `repo` scope (this gives access to repositories)
-   - Click "Generate token"
-   - Copy the token (you won't be able to see it again!)
+- PRs opened, merged, and reviewed
+- Review comments and issues
+- Top 5 repositories by contribution
+- Full list of PRs submitted (collapsible by month)
 
-3. **Configure Plugin Settings**
-   - **GitHub personal access token**: Paste the token you just created
-   - **GitHub username**: Enter your GitHub username
-   - **Repositories to monitor**: Enter a comma-separated list of repositories you want to track
-     - Format: `owner/repo1, owner/repo2` or full GitHub URLs
-     - Example: `facebook/react, microsoft/vscode` or `https://github.com/facebook/react`
-   - **GitHub section heading**: Where PR review requests appear (default: `## GitHub PRs`)
-   - **Open PRs section heading**: Where your own open/merged PRs appear (default: `## My Open PRs`)
-   - **Tracked labels**: Comma-separated list of labels to monitor (e.g., `urgent, bug, needs-attention`)
-   - **Labeled PRs section heading**: Where labeled PRs appear (default: `## Labeled PRs`)
-
-#### What Gets Added to Your Daily Note:
-
-The plugin will add task items organized by type:
-
-**Review Requests** (in GitHub PRs section):
-- `- [ ] Review requested: [Add new feature X](https://github.com/owner/repo/pull/123)`
-
-**Your Open PRs** (in My Open PRs section):
-- `- [ ] [Fix bug Y](https://github.com/owner/repo/pull/456)` - no recent activity
-- `- [ ] 🔥 [Implement feature Z](https://github.com/owner/repo/pull/789) *(activity since yesterday)*` - updated in last 24 hours
-- `- [x] ✅ [Update docs](https://github.com/owner/repo/pull/321) *(merged)*` - recently merged (pre-checked!)
-
-**Labeled PRs** (in Labeled PRs section):
-- `- [ ] [Critical bug](https://github.com/owner/repo/pull/111)` - matches your tracked labels
-
-These items are inserted at their respective section headings, making it easy to track your GitHub activity alongside your daily tasks.
+Respects GitHub API rate limits with automatic retry handling.
 
 ## Sample Templates
 
-The [sample](sample/) directory contains example daily note templates demonstrating different configurations:
+See the [sample/](sample/) directory for example daily note templates:
 
-1. **[DailyTemplate_default.md](sample/DailyTemplate_default.md)** - Basic template using standard markdown headings that works with default plugin settings. Includes sections for Tasks, GitHub PRs, My Open PRs, Labeled PRs, and Notes.
+- Standard markdown headings
+- Minimalist `#### ->` prefix style
+- Obsidian callout syntax with custom CSS
 
-2. **[DailyTemplateGithub.md](sample/DailyTemplateGithub.md)** - Minimalist template using `#### ->` prefix headings for a cleaner look. Demonstrates custom section heading configuration.
+## Development
 
-3. **[DailyTemplateCallout.md](sample/DailyTemplateCallout.md)** - Advanced template using Obsidian callout syntax (e.g., `>[!tip]+`, `>[!note]+`) for collapsible, styled sections. Shows how the plugin supports callout-based headings.
-
-4. **[DailyTemplateCalloutCustomCss.md](sample/DailyTemplateCalloutCustomCss.md)** & **[DailyTemplateCalloutCustomCss.css](sample/DailyTemplateCalloutCustomCss.css)** - Example of heavily customized callouts with a companion CSS snippet that defines custom icons and colors for callout types like "hot-list", "reviews-requested", "my-prs", etc.
-
-### Using Custom CSS Snippets
-
-To use the custom CSS file (e.g., `DailyTemplateCalloutCustomCss.css`):
-
-1. Copy the CSS file to your vault's snippets folder: `YourVault/.obsidian/snippets/`
-2. In Obsidian, go to Settings → Appearance → CSS snippets
-3. Click the refresh icon to detect the new snippet
-4. Toggle the snippet on to enable it
-
-For more information, see the [official Obsidian CSS snippets documentation](https://help.obsidian.md/Extending+Obsidian/CSS+snippets).
-
-## Supported Daily Note Formats
-
-- `YYYY-MM-DD` (e.g., 2024-01-15)
-- `YYYY-MM-DD-dddd` (e.g., 2024-01-15-Monday)
-- `DD-MM-YYYY` (e.g., 15-01-2024)
-- `MM-DD-YYYY` (e.g., 01-15-2024)
-- `YYYYMMDD` (e.g., 20240115)
-
-The plugin also checks for notes in a "Daily Notes" folder.
-
-### Development
-
-1. Clone this repository into your vault's `.obsidian/plugins/` folder
-2. Run `yarn install` to install dependencies
-3. Run `yarn dev` to start compilation in watch mode
-4. Reload Obsidian to load the plugin
-5. Make changes and reload to see them take effect
-
-> Consider using Obsidian hot reload plugin for better dev experience https://discordapp.com/channels/979539930869010452/1257773276835479572/1426609118436790314
-
-## Building
-
-- `yarn build` - Builds the plugin for production
-- `yarn dev` - Builds the plugin and watches for changes
+```bash
+yarn install
+yarn dev      # Watch mode
+yarn build    # Production build
+```
 
 ## Releasing
 
-To create a new patch release:
-
 ```bash
-yarn release-patch
+yarn release-patch  # Bumps version, commits, tags, and pushes
 ```
 
-This command will:
-1. Bump the patch version in [package.json](package.json) (e.g., 0.8.1 → 0.8.2)
-2. Update [manifest.json](manifest.json) and [versions.json](versions.json) with the new version
-3. Create a git commit with the version changes
-4. Create a git tag (e.g., v0.8.2)
-5. Push both the commit and tag to the remote repository
-
-### Manual Release Process
-
-If you need more control over the release:
-
 ```bash
-# Bump version (patch, minor, or major)
-yarn version --patch  # or --minor, --major
-
 # Push changes and tags
 git push && git push origin v$(node scripts/get-version.mjs)
 ```
-
-### Important Notes
-
-- The `yarn version` command automatically creates a git commit and tag
-- The [version-bump.mjs](scripts/version-bump.mjs) script runs via the `postversion` hook to keep [manifest.json](manifest.json) and [versions.json](versions.json) in sync with [package.json](package.json)
-- Make sure you're on the correct branch before releasing
-- Ensure all tests pass and the build succeeds before releasing
 
 ## License
 
