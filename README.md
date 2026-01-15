@@ -77,6 +77,9 @@ yarn release-patch  # Bumps version, commits, tags, and pushes
 ```
 
 ```bash
+# Bump version
+yarn version --patch  # or --minor, --major
+
 # Push changes and tags
 git push && git push origin v$(node scripts/get-version.mjs)
 ```
