@@ -1,8 +1,12 @@
 # Daily Note Rollover Plugin
 
+[![Release Obsidian plugin](https://github.com/denvermullets/obsidian-task-rollover-plugin/actions/workflows/release.yml/badge.svg)](https://github.com/denvermullets/obsidian-task-rollover-plugin/actions/workflows/release.yml)
+
 An Obsidian plugin that automatically moves unchecked items from yesterday's daily note to today's, with optional GitHub integration for tracking PRs and generating activity recaps.
 
-<img width="864" height="628" alt="Screenshot" src="https://github.com/user-attachments/assets/eadeeee2-24c6-4113-970d-c36eaf5c4691" />
+<img width="943" height="987" alt="Screenshot 2026-01-15 at 9 38 35 AM" src="https://github.com/user-attachments/assets/abc68d2b-dbbd-40a5-b624-5d6627e0c762" />
+<img width="959" height="1092" alt="Screenshot 2026-01-15 at 9 14 08 AM" src="https://github.com/user-attachments/assets/b51d1896-1921-4e1b-8180-ed9c4ddd143f" />
+
 
 ## Features
 
