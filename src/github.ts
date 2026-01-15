@@ -42,9 +42,15 @@ function sleep(ms: number): Promise<void> {
 
 // Track last request time to respect rate limits
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL_MS = 2100; // ~28 requests/min, under the 30/min secondary limit
+const MIN_REQUEST_INTERVAL_MS = 4000; // 4 seconds between requests to avoid secondary rate limits
 
-async function githubApiRequest<T>(url: string, settings: DailyNoteRolloverSettings): Promise<T | null> {
+async function githubApiRequest<T>(
+  url: string,
+  settings: DailyNoteRolloverSettings,
+  retryCount = 0
+): Promise<T | null> {
+  const MAX_RETRIES = 3;
+
   // Rate limiting: ensure minimum interval between requests
   const now = Date.now();
   const timeSinceLastRequest = now - lastRequestTime;
@@ -52,6 +58,7 @@ async function githubApiRequest<T>(url: string, settings: DailyNoteRolloverSetti
     await sleep(MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest);
   }
   lastRequestTime = Date.now();
+
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${settings.githubToken}`,
@@ -60,26 +67,31 @@ async function githubApiRequest<T>(url: string, settings: DailyNoteRolloverSetti
     },
   });
 
-  // Handle rate limiting
+  // Handle rate limiting (both primary and secondary)
   if (response.status === 403 || response.status === 429) {
+    if (retryCount >= MAX_RETRIES) {
+      console.error(`GitHub API rate limit: max retries (${MAX_RETRIES}) exceeded`);
+      return null;
+    }
+
     const retryAfter = response.headers.get("Retry-After");
     const rateLimitReset = response.headers.get("X-RateLimit-Reset");
 
+    let waitTime: number;
+
     if (retryAfter) {
-      const waitTime = parseInt(retryAfter) * 1000;
-      logger.info(`Rate limited, waiting ${retryAfter} seconds...`);
-      await sleep(waitTime);
-      return githubApiRequest<T>(url, settings); // Retry
+      waitTime = parseInt(retryAfter) * 1000;
     } else if (rateLimitReset) {
       const resetTime = parseInt(rateLimitReset) * 1000;
-      const waitTime = Math.max(0, resetTime - Date.now()) + 1000;
-      logger.info(`Rate limited, waiting until reset (${Math.ceil(waitTime / 1000)}s)...`);
-      await sleep(waitTime);
-      return githubApiRequest<T>(url, settings); // Retry
+      waitTime = Math.max(0, resetTime - Date.now()) + 1000;
+    } else {
+      // Secondary rate limit - exponential backoff starting at 60s
+      waitTime = 60000 * Math.pow(2, retryCount);
     }
 
-    console.error(`GitHub API rate limit error: ${response.status}`);
-    return null;
+    logger.info(`Rate limited, waiting ${Math.ceil(waitTime / 1000)} seconds before retry...`);
+    await sleep(waitTime);
+    return githubApiRequest<T>(url, settings, retryCount + 1);
   }
 
   if (!response.ok) {

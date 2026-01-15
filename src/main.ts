@@ -162,7 +162,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
   }
 
   async generateGitHubRecap(month: number, year: number) {
-    const loadingNotice = new Notice("Generating GitHub recap...", 0);
+    const loadingNotice = new Notice("Generating GitHub recap... This may take a few minutes.", 0);
 
     const stats = await fetchGitHubRecap(this.settings, month, year);
     loadingNotice.hide();
@@ -216,7 +216,7 @@ export default class DailyNoteRolloverPlugin extends Plugin {
   }
 
   async generateYearlyGitHubRecap(year: number) {
-    const loadingNotice = new Notice("Generating yearly GitHub recap... This may take a minute.", 0);
+    const loadingNotice = new Notice("Generating yearly GitHub recap... This may take several minutes.", 0);
 
     const recap = await fetchGitHubYearlyRecap(this.settings, year);
     loadingNotice.hide();

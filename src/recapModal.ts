@@ -31,7 +31,7 @@ export class RecapModal extends Modal {
     contentEl.createEl("h2", { text: "Generate GitHub Recap" });
 
     const infoEl = contentEl.createEl("p", {
-      text: "Monthly recaps take ~15 seconds. Yearly recaps take ~3 minutes due to GitHub API rate limits.",
+      text: "This may take a few minutes depending on your GitHub activity. The plugin respects API rate limits to avoid errors.",
       cls: "setting-item-description",
     });
     infoEl.style.marginBottom = "1em";
