@@ -186,13 +186,12 @@ export default class DailyNoteRolloverPlugin extends Plugin {
     const generatedDate = moment().format("YYYY-MM-DD");
 
     let content = `# GitHub Recap - ${monthName} ${year}\n\n`;
-    content += `## Summary\n`;
-    content += `- **PRs Opened:** ${stats.prsOpened}\n`;
-    content += `- **PRs Merged:** ${stats.prsMerged}\n`;
-    content += `- **PRs Reviewed:** ${stats.prsReviewed}\n`;
-    content += `- **Review Comments:** ${stats.reviewComments}\n`;
-    content += `- **Issues Opened:** ${stats.issuesOpened}\n`;
-    content += `- **Issues Closed:** ${stats.issuesClosed}\n`;
+
+    // Summary table
+    content += `## Summary\n\n`;
+    content += `| PRs Opened | PRs Merged | PRs Reviewed | Review Comments | Issues Opened | Issues Closed |\n`;
+    content += `|------------|------------|--------------|-----------------|---------------|---------------|\n`;
+    content += `| ${stats.prsOpened} | ${stats.prsMerged} | ${stats.prsReviewed} | ${stats.reviewComments} | ${stats.issuesOpened} | ${stats.issuesClosed} |\n`;
 
     if (stats.topRepos.length > 0) {
       content += `\n## Top Repositories\n`;
@@ -201,7 +200,17 @@ export default class DailyNoteRolloverPlugin extends Plugin {
       }
     }
 
-    content += `\n---\n*Generated on ${generatedDate}*\n`;
+    // PR list using collapsible callout
+    if (stats.prList.length > 0) {
+      content += `\n## Pull Requests Submitted\n\n`;
+      content += `> [!note]- ${monthName} (${stats.prList.length} PRs)\n`;
+      for (const pr of stats.prList) {
+        content += `> - [${pr.title}](${pr.url}) - \`${pr.repo}\`\n`;
+      }
+      content += `\n`;
+    }
+
+    content += `---\n*Generated on ${generatedDate}*\n`;
 
     const filePath = this.settings.githubRecapFilePath || "GitHub Recap.md";
     const existingFile = this.app.vault.getAbstractFileByPath(filePath);
